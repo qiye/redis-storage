@@ -24,14 +24,35 @@ class redis
 		return $this->conn ? true : false;
 	}
 
-	public function multi($recores)
-	{
+public function multi($recores)
+{
 		$data =  phpiredis_multi_command($this->conn, $recores);
 		return $data;
-	}
+}
 
-	public function __call($method, $params)
-	{
+public function hmset($cmd, $recores)
+{
+    if(!is_array($recores))
+      return false;
+    
+    $str = sprintf('HMSET %s', $cmd);
+    foreach($recores as $key=>$value)
+    {
+      $str .= sprintf(' %s "%s"', $key, $value);
+    }
+    
+    $data =  phpiredis_command($this->conn, $str);
+    if($data == "OK")
+      return true;
+    
+    return false;
+}
+
+public function __call($method, $params)
+{
+    if(is_null($params))
+      return false;
+    
 		array_unshift($params, $method);
 		$str  = implode(" ", $params);
 		$data =  phpiredis_command($this->conn, $str);
@@ -54,19 +75,27 @@ class redis
 }
 
 /*
-$db = new redis("192.168.1.102", 6379);
+$db = new redis("127.0.0.1", 6379);
 $rc = $db->connect();
 if(!$rc)
 {
    echo "can not connect redis server\r\n";
    exit;
-}  
+} 
+
+$value = array("name"=>"qiye", "age"=>18);
+$db->hmset("user:1", $value);
+
+
 $data = $db->multi(array('DEL test', 'SET test 1', 'GET test'));
 print_r($data);
 //echo $db->set("name", "value");
 //echo $db->get("name");
-//$db->ds_set("tmp", "qiangjian");
+$db->ds_set("name", "qiangjian");
+$db->ds_set("nickname", "qiye");
 $data = $db->ds_mget( "name", "nickname");
 print_r($data);
- */
+*/
+echo "\r\n";
+echo phpiredis_genid(); 
 ?>
