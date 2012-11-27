@@ -24,39 +24,38 @@ class redis
 		return $this->conn ? true : false;
 	}
 
-public function multi($recores)
-{
-		$data =  phpiredis_multi_command($this->conn, $recores);
-		return $data;
-}
-
-public function hmset($cmd, $recores)
-{
-    if(!is_array($recores))
-      return false;
-    
-    $str = sprintf('HMSET %s', $cmd);
-    foreach($recores as $key=>$value)
+    public function multi($recores)
     {
-      $str .= sprintf(' %s "%s"', $key, $value);
+    	$data =  phpiredis_multi_command($this->conn, $recores);
+    	return $data;
     }
-    
-    $data =  phpiredis_command($this->conn, $str);
-    if($data == "OK")
-      return true;
-    
-    return false;
-}
 
-public function __call($method, $params)
-{
-    if(is_null($params))
-      return false;
+    public function hmset($cmd, $recores)
+    {
+        if(!is_array($recores))
+          return false;
+    
+        $data  = array("HMSET", $cmd);
+        foreach($recores as $key=>$value)
+        {
+            array_push($data, (string)$key, (string)$value);
+        }
+    
+        $rc =  phpiredis_command_bs($this->conn, $data);
+        if($rc == "OK")
+          return true;
+    
+        return false;
+    }
+
+    public function __call($method, $params)
+    {
+        if(is_null($params))
+            return false;
     
 		array_unshift($params, $method);
-		$str  = implode(" ", $params);
-		$data =  phpiredis_command($this->conn, $str);
-		
+        	
+        $data =  phpiredis_command_bs($this->conn, $params);	
 		if($data == "NULL")
 			return NULL;
 		else if($method == "ds_mget")
@@ -67,6 +66,7 @@ public function __call($method, $params)
 		return $data;
 	}
 
+
 	public function __destruct()
 	{
 		if($this->conn)
@@ -74,7 +74,7 @@ public function __call($method, $params)
 	}
 }
 
-/*
+
 $db = new redis("127.0.0.1", 6379);
 $rc = $db->connect();
 if(!$rc)
@@ -83,6 +83,10 @@ if(!$rc)
    exit;
 } 
 
+$data = array("name"=>"qiye", "age"=>18);
+    var_dump($db->hmset("key", $data));
+var_dump($db->hgetall("key"));
+/*
 $value = array("name"=>"qiye", "age"=>18);
 $db->hmset("user:1", $value);
 
