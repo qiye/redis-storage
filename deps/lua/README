@@ -1,37 +1,16 @@
-README for Lua 5.1
+README for LuaJIT 2.0.0
+-----------------------
 
-See INSTALL for installation instructions.
-See HISTORY for a summary of changes since the last released version.
+LuaJIT is a Just-In-Time (JIT) compiler for the Lua programming language.
 
-* What is Lua?
-  ------------
-  Lua is a powerful, light-weight programming language designed for extending
-  applications. Lua is also frequently used as a general-purpose, stand-alone
-  language. Lua is free software.
+Project Homepage: http://luajit.org/
 
-  For complete information, visit Lua's web site at http://www.lua.org/ .
-  For an executive summary, see http://www.lua.org/about.html .
+LuaJIT is Copyright (C) 2005-2012 Mike Pall.
+LuaJIT is free software, released under the MIT license.
+See full Copyright Notice in the COPYRIGHT file or in luajit.h.
 
-  Lua has been used in many different projects around the world.
-  For a short list, see http://www.lua.org/uses.html .
+Documentation for LuaJIT is available in HTML format.
+Please point your favorite browser to:
 
-* Availability
-  ------------
-  Lua is freely available for both academic and commercial purposes.
-  See COPYRIGHT and http://www.lua.org/license.html for details.
-  Lua can be downloaded at http://www.lua.org/download.html .
+ doc/luajit.html
 
-* Installation
-  ------------
-  Lua is implemented in pure ANSI C, and compiles unmodified in all known
-  platforms that have an ANSI C compiler. In most Unix-like platforms, simply
-  do "make" with a suitable target. See INSTALL for detailed instructions.
-
-* Origin
-  ------
-  Lua is developed at Lua.org, a laboratory of the Department of Computer
-  Science of PUC-Rio (the Pontifical Catholic University of Rio de Janeiro
-  in Brazil).
-  For more information about the authors, see http://www.lua.org/authors.html .
-
-(end of README)
