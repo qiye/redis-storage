@@ -86,7 +86,7 @@ ds_del key age
 
 cd php-hiredis/
 =========
-</pre>
+<pre>
 //php code 
 include "redis.php";
 $db = new redis("127.0.0.1", 6379);
