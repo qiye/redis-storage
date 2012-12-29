@@ -17,6 +17,8 @@ https://github.com/qiye/redis-storage 获取源码
     
 make init
 make MALLOC=tcmalloc_minimal
+
+这一步需要root权限
 make install PREFIX=/usr/local/redis
 </pre>
 

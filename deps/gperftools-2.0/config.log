@@ -1884,8 +1884,8 @@ configure:16115: checking for __builtin_stack_pointer()
 configure:16128: gcc -o conftest -g -O2   conftest.c  >&5
 conftest.c: In function 'main':
 conftest.c:65: warning: initialization makes pointer from integer without a cast
-/tmp/cc7mC2iy.o: In function `main':
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:64: undefined reference to `__builtin_stack_pointer'
+/tmp/ccmbcnIK.o: In function `main':
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:64: undefined reference to `__builtin_stack_pointer'
 collect2: ld returned 1 exit status
 configure:16128: $? = 1
 configure: failed program was:
@@ -2132,11 +2132,11 @@ configure: failed program was:
 configure:16533: result: no
 configure:16436: checking whether pthreads work without any flags
 configure:16524: gcc -o conftest -g -O2    conftest.c   >&5
-/tmp/ccsjqQQM.o: In function `main':
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
+/tmp/ccIUP7z7.o: In function `main':
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
 collect2: ld returned 1 exit status
 configure:16524: $? = 1
 configure: failed program was:
@@ -2217,11 +2217,11 @@ configure:16533: result: no
 configure:16441: checking whether pthreads work with -Kthread
 configure:16524: gcc -o conftest -g -O2 -Kthread   conftest.c   >&5
 gcc: unrecognized option '-Kthread'
-/tmp/ccCTPD2O.o: In function `main':
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
+/tmp/ccpGe33b.o: In function `main':
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
 collect2: ld returned 1 exit status
 configure:16524: $? = 1
 configure: failed program was:
@@ -2302,11 +2302,11 @@ configure:16533: result: no
 configure:16441: checking whether pthreads work with -kthread
 configure:16524: gcc -o conftest -g -O2 -kthread   conftest.c   >&5
 gcc: unrecognized option '-kthread'
-/tmp/cc7WMWcU.o: In function `main':
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
+/tmp/ccvloX7d.o: In function `main':
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
 collect2: ld returned 1 exit status
 configure:16524: $? = 1
 configure: failed program was:
@@ -2484,11 +2484,11 @@ configure:16725: $? = 0
 configure:16732: result: yes
 configure:16820: checking whether what we have so far is sufficient with -nostdlib
 configure:16838: gcc -o conftest -nostdlib -shared -fPIC -Wl,-z,defs -g -O2 -pthread   conftest.c   -lc >&5
-/tmp/ccEpl7Xj.o: In function `main':
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
-/root/project/redis-2.6.7/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
+/tmp/ccLsJipD.o: In function `main':
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:68: undefined reference to `pthread_join'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:69: undefined reference to `__pthread_register_cancel'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `pthread_create'
+/root/project/redis-storage/deps/gperftools-2.0/conftest.c:70: undefined reference to `__pthread_unregister_cancel'
 collect2: ld returned 1 exit status
 configure:16838: $? = 1
 configure: failed program was:
@@ -2832,15 +2832,15 @@ perftools_cv_w_no_unused_result=yes
 ## Output variables. ##
 ## ----------------- ##
 
-ACLOCAL='${SHELL} /root/project/redis-2.6.7/deps/gperftools-2.0/missing --run aclocal-1.10'
+ACLOCAL='${SHELL} /root/project/redis-storage/deps/gperftools-2.0/missing --run aclocal-1.10'
 AMDEPBACKSLASH='\'
 AMDEP_FALSE='#'
 AMDEP_TRUE=''
-AMTAR='${SHELL} /root/project/redis-2.6.7/deps/gperftools-2.0/missing --run tar'
+AMTAR='${SHELL} /root/project/redis-storage/deps/gperftools-2.0/missing --run tar'
 AR='ar'
-AUTOCONF='${SHELL} /root/project/redis-2.6.7/deps/gperftools-2.0/missing --run autoconf'
-AUTOHEADER='${SHELL} /root/project/redis-2.6.7/deps/gperftools-2.0/missing --run autoheader'
-AUTOMAKE='${SHELL} /root/project/redis-2.6.7/deps/gperftools-2.0/missing --run automake-1.10'
+AUTOCONF='${SHELL} /root/project/redis-storage/deps/gperftools-2.0/missing --run autoconf'
+AUTOHEADER='${SHELL} /root/project/redis-storage/deps/gperftools-2.0/missing --run autoheader'
+AUTOMAKE='${SHELL} /root/project/redis-storage/deps/gperftools-2.0/missing --run automake-1.10'
 AWK='gawk'
 CC='gcc'
 CCDEPMODE='depmode=gcc3'
@@ -2889,7 +2889,7 @@ LIBTOOL_DEPS='./ltmain.sh'
 LIPO=''
 LN_S='ln -s'
 LTLIBOBJS=''
-MAKEINFO='${SHELL} /root/project/redis-2.6.7/deps/gperftools-2.0/missing --run makeinfo'
+MAKEINFO='${SHELL} /root/project/redis-storage/deps/gperftools-2.0/missing --run makeinfo'
 MINGW_FALSE=''
 MINGW_TRUE='#'
 MKDIR_P='/bin/mkdir -p'
@@ -2976,7 +2976,7 @@ host_vendor='unknown'
 htmldir='${docdir}'
 includedir='${prefix}/include'
 infodir='${datarootdir}/info'
-install_sh='$(SHELL) /root/project/redis-2.6.7/deps/gperftools-2.0/install-sh'
+install_sh='$(SHELL) /root/project/redis-storage/deps/gperftools-2.0/install-sh'
 libdir='${exec_prefix}/lib'
 libexecdir='${exec_prefix}/libexec'
 localedir='${datarootdir}/locale'

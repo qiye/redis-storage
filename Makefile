@@ -3,6 +3,8 @@
 default: all
 
 .DEFAULT:
+	cd deps/lua && $(MAKE) $@
+	cd deps/hiredis && $(MAKE) $@
 	cd src && $(MAKE) $@
 
 init:

@@ -497,8 +497,10 @@ struct redisServer {
 	leveldb_comparator_t   *ds_cmp;
 	leveldb_cache_t        *ds_cache;
 	leveldb_options_t      *ds_options;
+    leveldb_filterpolicy_t *policy;
 	
-	uint16_t     ds_create_if_missing;
+	uint16_t     ds_lru_cache;
+    uint16_t     ds_create_if_missing;
 	uint16_t     ds_error_if_exists;
 	uint16_t     ds_paranoid_checks;
 	uint32_t     ds_block_cache_size;

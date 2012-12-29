@@ -448,7 +448,7 @@ Copyright (C) 2009 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/root/project/redis-2.6.7/deps/snappy-1.0.5'
+ac_pwd='/root/project/redis-storage/deps/snappy-1.0.5'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/bin/mkdir -p'
@@ -935,7 +935,7 @@ S["build"]="x86_64-unknown-linux-gnu"
 S["LIBTOOL"]="$(SHELL) $(top_builddir)/libtool"
 S["am__untar"]="${AMTAR} xf -"
 S["am__tar"]="${AMTAR} chof - \"$$tardir\""
-S["AMTAR"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/missing --run tar"
+S["AMTAR"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/missing --run tar"
 S["am__leading_dot"]="."
 S["SET_MAKE"]=""
 S["AWK"]="gawk"
@@ -943,12 +943,12 @@ S["mkdir_p"]="/bin/mkdir -p"
 S["MKDIR_P"]="/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]="strip"
-S["install_sh"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/install-sh"
-S["MAKEINFO"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/missing --run makeinfo"
-S["AUTOHEADER"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/missing --run autoheader"
-S["AUTOMAKE"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/missing --run automake-1.11"
-S["AUTOCONF"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/missing --run autoconf"
-S["ACLOCAL"]="${SHELL} /root/project/redis-2.6.7/deps/snappy-1.0.5/missing --run aclocal-1.11"
+S["install_sh"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/install-sh"
+S["MAKEINFO"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/missing --run makeinfo"
+S["AUTOHEADER"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/missing --run autoheader"
+S["AUTOMAKE"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/missing --run automake-1.11"
+S["AUTOCONF"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/missing --run autoconf"
+S["ACLOCAL"]="${SHELL} /root/project/redis-storage/deps/snappy-1.0.5/missing --run aclocal-1.11"
 S["VERSION"]="1.0.5"
 S["PACKAGE"]="snappy"
 S["CYGPATH_W"]="echo"
