@@ -49,12 +49,15 @@ void ds_init()
 {
 	char *err   = NULL;
 	
-    server.ds_cache   = leveldb_cache_create_lru(4 * 1048576);
+    server.ds_cache   = leveldb_cache_create_lru(server.ds_lru_cache);
 	server.ds_options = leveldb_options_create();
-	
+    
+    server.policy     = leveldb_filterpolicy_create_bloom(10);
+    
 	
 	//leveldb_options_set_comparator(server.ds_options, cmp);
-	leveldb_options_set_create_if_missing(server.ds_options, server.ds_create_if_missing);
+	leveldb_options_set_filter_policy(server.ds_options, server.policy);
+    leveldb_options_set_create_if_missing(server.ds_options, server.ds_create_if_missing);
 	leveldb_options_set_error_if_exists(server.ds_options, server.ds_error_if_exists);
 	leveldb_options_set_cache(server.ds_options, server.ds_cache);
 	leveldb_options_set_info_log(server.ds_options, NULL);
@@ -273,6 +276,8 @@ void ds_delete(redisClient *c)
 
 void ds_close()
 {
+    leveldb_options_set_filter_policy(server.ds_options, NULL);
+    leveldb_filterpolicy_destroy(server.policy);
 	leveldb_close(server.ds_db);
 	leveldb_options_destroy(server.ds_options);
 	leveldb_cache_destroy(server.ds_cache);

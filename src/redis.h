@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2009-2012, Salvatore Sanfilippo <antirez at gmail dot com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *   * Neither the name of Redis nor the names of its contributors may be used
+ *     to endorse or promote products derived from this software without
+ *     specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #ifndef __REDIS_H
 #define __REDIS_H
 
@@ -22,7 +51,7 @@
 #include <lua.h>
 #include <signal.h>
 #include <leveldb/c.h>
-
+     
 #include "ae.h"      /* Event driven programming library */
 #include "sds.h"     /* Dynamic safe strings */
 #include "dict.h"    /* Hash tables */
@@ -141,19 +170,20 @@
 #define REDIS_AOF_WAIT_REWRITE 2    /* AOF waits rewrite to start appending */
 
 /* Client flags */
-#define REDIS_SLAVE 1       /* This client is a slave server */
-#define REDIS_MASTER 2      /* This client is a master server */
-#define REDIS_MONITOR 4     /* This client is a slave monitor, see MONITOR */
-#define REDIS_MULTI 8       /* This client is in a MULTI context */
-#define REDIS_BLOCKED 16    /* The client is waiting in a blocking operation */
-#define REDIS_DIRTY_CAS 64  /* Watched keys modified. EXEC will fail. */
-#define REDIS_CLOSE_AFTER_REPLY 128 /* Close after writing entire reply. */
-#define REDIS_UNBLOCKED 256 /* This client was unblocked and is stored in
-                               server.unblocked_clients */
-#define REDIS_LUA_CLIENT 512 /* This is a non connected client used by Lua */
-#define REDIS_ASKING 1024   /* Client issued the ASKING command */
-#define REDIS_CLOSE_ASAP 2048 /* Close this client ASAP */
-#define REDIS_UNIX_SOCKET 4096 /* Client connected via Unix domain socket */
+#define REDIS_SLAVE (1<<0)   /* This client is a slave server */
+#define REDIS_MASTER (1<<1)  /* This client is a master server */
+#define REDIS_MONITOR (1<<2) /* This client is a slave monitor, see MONITOR */
+#define REDIS_MULTI (1<<3)   /* This client is in a MULTI context */
+#define REDIS_BLOCKED (1<<4) /* The client is waiting in a blocking operation */
+#define REDIS_DIRTY_CAS (1<<5) /* Watched keys modified. EXEC will fail. */
+#define REDIS_CLOSE_AFTER_REPLY (1<<6) /* Close after writing entire reply. */
+#define REDIS_UNBLOCKED (1<<7) /* This client was unblocked and is stored in
+                                  server.unblocked_clients */
+#define REDIS_LUA_CLIENT (1<<8) /* This is a non connected client used by Lua */
+#define REDIS_ASKING (1<<9)     /* Client issued the ASKING command */
+#define REDIS_CLOSE_ASAP (1<<10)/* Close this client ASAP */
+#define REDIS_UNIX_SOCKET (1<<11) /* Client connected via Unix domain socket */
+#define REDIS_DIRTY_EXEC (1<<12)  /* EXEC will fail for errors while queueing */
 
 /* Client request types */
 #define REDIS_REQ_INLINE 1
@@ -321,9 +351,8 @@ typedef struct multiState {
 } multiState;
 
 typedef struct blockingState {
-    robj **keys;            /* The key we are waiting to terminate a blocking
+    dict *keys;             /* The keys we are waiting to terminate a blocking
                              * operation such as BLPOP. Otherwise NULL. */
-    int count;              /* Number of blocking keys */
     time_t timeout;         /* Blocking operation timeout. If UNIX current time
                              * is >= timeout then the operation timed out. */
     robj *target;           /* The key that should receive the element,
@@ -397,7 +426,7 @@ struct sharedObjectsStruct {
     *colon, *nullbulk, *nullmultibulk, *queued,
     *emptymultibulk, *wrongtypeerr, *nokeyerr, *syntaxerr, *sameobjecterr,
     *outofrangeerr, *noscripterr, *loadingerr, *slowscripterr, *bgsaveerr,
-    *masterdownerr, *roslaveerr,
+    *masterdownerr, *roslaveerr, *execaborterr,
     *oomerr, *plus, *messagebulk, *pmessagebulk, *subscribebulk,
     *unsubscribebulk, *psubscribebulk, *punsubscribebulk, *del, *rpop, *lpop,
     *lpush,
@@ -468,16 +497,19 @@ struct redisServer {
 	leveldb_comparator_t   *ds_cmp;
 	leveldb_cache_t        *ds_cache;
 	leveldb_options_t      *ds_options;
+    leveldb_filterpolicy_t *policy;
 	
-	uint16_t     ds_create_if_missing;
+	uint16_t     ds_lru_cache;
+    uint16_t     ds_create_if_missing;
 	uint16_t     ds_error_if_exists;
-	uint16_t  ds_paranoid_checks;
-	uint32_t ds_block_cache_size;
-	uint32_t ds_write_buffer_size;
-	uint32_t ds_block_size;
-	uint16_t ds_max_open_files;
-	uint16_t ds_block_restart_interval;
-	char     *ds_path;
+	uint16_t     ds_paranoid_checks;
+	uint32_t     ds_block_cache_size;
+	uint32_t     ds_write_buffer_size;
+	uint32_t     ds_block_size;
+	uint16_t     ds_max_open_files;
+	uint16_t     ds_block_restart_interval;
+	char         *ds_path;
+    
     /* General */
     redisDb *db;
     dict *commands;             /* Command table hash table */
@@ -740,6 +772,7 @@ extern struct sharedObjectsStruct shared;
 extern dictType setDictType;
 extern dictType zsetDictType;
 extern dictType dbDictType;
+extern dictType shaScriptObjectDictType;
 extern double R_Zero, R_PosInf, R_NegInf, R_Nan;
 extern dictType hashDictType;
 
@@ -831,6 +864,7 @@ void queueMultiCommand(redisClient *c);
 void touchWatchedKey(redisDb *db, robj *key);
 void touchWatchedKeysOnFlush(int dbid);
 void discardTransaction(redisClient *c);
+void flagTransaction(redisClient *c);
 
 /* Redis object implementation */
 void decrRefCount(void *o);

@@ -58,16 +58,16 @@ else
 endif
 
 # Include paths to dependencies
-FINAL_CFLAGS+= -I../deps/hiredis -I../deps/linenoise -I../deps/lua/src -I../deps/leveldb-1.7.0/include -L/usr/local/gperftools/lib -I/usr/local/gperftools/include
+FINAL_CFLAGS+= -I../deps/hiredis -I../deps/linenoise -I../deps/lua/src -I../deps/leveldb-1.8.0/include -I../deps/gperftools-2.0/src
 
 ifeq ($(MALLOC),tcmalloc)
   FINAL_CFLAGS+= -DUSE_TCMALLOC
-  FINAL_LIBS+= -ltcmalloc -L/usr/local/gperftools/lib
+  FINAL_LIBS+= -ltcmalloc
 endif
 
 ifeq ($(MALLOC),tcmalloc_minimal)
   FINAL_CFLAGS+= -DUSE_TCMALLOC
-  FINAL_LIBS+= -ltcmalloc_minimal
+  FINAL_LIBS+= ../deps/gperftools-2.0/.libs/libtcmalloc_minimal.a -ldl
 endif
 
 ifeq ($(MALLOC),jemalloc)
@@ -76,9 +76,9 @@ ifeq ($(MALLOC),jemalloc)
   FINAL_LIBS+= ../deps/jemalloc/lib/libjemalloc.a -ldl
 endif
 
-REDIS_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS)
-REDIS_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS)
-REDIS_INSTALL=$(QUIET_INSTALL)$(INSTALL)
+REDIS_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS) 
+REDIS_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS) 
+REDIS_INSTALL=$(QUIET_INSTALL)$(INSTALL) 
 
 PREFIX?=/usr/local
 INSTALL_BIN= $(PREFIX)/bin
@@ -99,7 +99,7 @@ endif
 
 REDIS_SERVER_NAME= redis-server
 REDIS_SENTINEL_NAME= redis-sentinel
-REDIS_SERVER_OBJ= ds.o adlist.o ae.o anet.o dict.o redis.o sds.o zmalloc.o lzf_c.o lzf_d.o pqsort.o zipmap.o sha1.o ziplist.o release.o networking.o util.o object.o db.o replication.o rdb.o t_string.o t_list.o t_set.o t_zset.o t_hash.o config.o aof.o pubsub.o multi.o debug.o sort.o intset.o syncio.o migrate.o endianconv.o slowlog.o scripting.o bio.o rio.o rand.o memtest.o crc64.o bitops.o sentinel.o
+REDIS_SERVER_OBJ= ds.o strbuf.o lua_cmsgpack.o lua_cjson.o lua_struct.o adlist.o ae.o anet.o dict.o redis.o sds.o zmalloc.o lzf_c.o lzf_d.o pqsort.o zipmap.o sha1.o ziplist.o release.o networking.o util.o object.o db.o replication.o rdb.o t_string.o t_list.o t_set.o t_zset.o t_hash.o config.o aof.o pubsub.o multi.o debug.o sort.o intset.o syncio.o migrate.o endianconv.o slowlog.o scripting.o bio.o rio.o rand.o memtest.o crc64.o bitops.o sentinel.o
 REDIS_CLI_NAME= redis-cli
 REDIS_CLI_OBJ= anet.o sds.o adlist.o redis-cli.o zmalloc.o release.o anet.o ae.o
 REDIS_BENCHMARK_NAME= redis-benchmark
@@ -154,7 +154,7 @@ endif
 
 # redis-server
 $(REDIS_SERVER_NAME): $(REDIS_SERVER_OBJ)
-	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a -L../deps/leveldb-1.7.0 -lleveldb ../deps/lua/src/liblua.a $(FINAL_LIBS)
+	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a -lstdc++ -I../deps/lua/src ../deps/lua/src/libluajit.a -L../deps/leveldb-1.8.0 -lleveldb $(FINAL_LIBS)
 
 # redis-sentinel
 $(REDIS_SENTINEL_NAME): $(REDIS_SERVER_NAME)
@@ -162,19 +162,19 @@ $(REDIS_SENTINEL_NAME): $(REDIS_SERVER_NAME)
 
 # redis-cli
 $(REDIS_CLI_NAME): $(REDIS_CLI_OBJ)
-	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a ../deps/linenoise/linenoise.o $(FINAL_LIBS)
+	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a -lstdc++ ../deps/linenoise/linenoise.o $(FINAL_LIBS)
 
 # redis-benchmark
 $(REDIS_BENCHMARK_NAME): $(REDIS_BENCHMARK_OBJ)
-	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a $(FINAL_LIBS)
+	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a -lstdc++ $(FINAL_LIBS)
 
 # redis-check-dump
 $(REDIS_CHECK_DUMP_NAME): $(REDIS_CHECK_DUMP_OBJ)
-	$(REDIS_LD) -o $@ $^ $(FINAL_LIBS)
+	$(REDIS_LD) -o $@ $^ -lstdc++ $(FINAL_LIBS)
 
 # redis-check-aof
 $(REDIS_CHECK_AOF_NAME): $(REDIS_CHECK_AOF_OBJ)
-	$(REDIS_LD) -o $@ $^ $(FINAL_LIBS)
+	$(REDIS_LD) -o $@ $^ -lstdc++ $(FINAL_LIBS)
 
 # Because the jemalloc.h header is generated as a part of the jemalloc build,
 # building it should complete before building any other object. Instead of

@@ -85,7 +85,7 @@ void zlibc_free(void *ptr) {
 
 #endif
 
-#define update_zmalloc_stat_alloc(__n,__size) do { \
+#define update_zmalloc_stat_alloc(__n) do { \
     size_t _n = (__n); \
     if (_n&(sizeof(long)-1)) _n += sizeof(long)-(_n&(sizeof(long)-1)); \
     if (zmalloc_thread_safe) { \
@@ -123,11 +123,11 @@ void *zmalloc(size_t size) {
 
     if (!ptr) zmalloc_oom_handler(size);
 #ifdef HAVE_MALLOC_SIZE
-    update_zmalloc_stat_alloc(zmalloc_size(ptr),size);
+    update_zmalloc_stat_alloc(zmalloc_size(ptr));
     return ptr;
 #else
     *((size_t*)ptr) = size;
-    update_zmalloc_stat_alloc(size+PREFIX_SIZE,size);
+    update_zmalloc_stat_alloc(size+PREFIX_SIZE);
     return (char*)ptr+PREFIX_SIZE;
 #endif
 }
@@ -137,11 +137,11 @@ void *zcalloc(size_t size) {
 
     if (!ptr) zmalloc_oom_handler(size);
 #ifdef HAVE_MALLOC_SIZE
-    update_zmalloc_stat_alloc(zmalloc_size(ptr),size);
+    update_zmalloc_stat_alloc(zmalloc_size(ptr));
     return ptr;
 #else
     *((size_t*)ptr) = size;
-    update_zmalloc_stat_alloc(size+PREFIX_SIZE,size);
+    update_zmalloc_stat_alloc(size+PREFIX_SIZE);
     return (char*)ptr+PREFIX_SIZE;
 #endif
 }
@@ -160,7 +160,7 @@ void *zrealloc(void *ptr, size_t size) {
     if (!newptr) zmalloc_oom_handler(size);
 
     update_zmalloc_stat_free(oldsize);
-    update_zmalloc_stat_alloc(zmalloc_size(newptr),size);
+    update_zmalloc_stat_alloc(zmalloc_size(newptr));
     return newptr;
 #else
     realptr = (char*)ptr-PREFIX_SIZE;
@@ -170,7 +170,7 @@ void *zrealloc(void *ptr, size_t size) {
 
     *((size_t*)newptr) = size;
     update_zmalloc_stat_free(oldsize);
-    update_zmalloc_stat_alloc(size,size);
+    update_zmalloc_stat_alloc(size);
     return (char*)newptr+PREFIX_SIZE;
 #endif
 }
@@ -324,3 +324,28 @@ size_t zmalloc_get_rss(void) {
 float zmalloc_get_fragmentation_ratio(void) {
     return (float)zmalloc_get_rss()/zmalloc_used_memory();
 }
+
+#if defined(HAVE_PROCFS)
+size_t zmalloc_get_private_dirty(void) {
+    char line[1024];
+    size_t pd = 0;
+    FILE *fp = fopen("/proc/self/smaps","r");
+
+    if (!fp) return 0;
+    while(fgets(line,sizeof(line),fp) != NULL) {
+        if (strncmp(line,"Private_Dirty:",14) == 0) {
+            char *p = strchr(line,'k');
+            if (p) {
+                *p = '\0';
+                pd += strtol(line+14,NULL,10) * 1024;
+            }
+        }
+    }
+    fclose(fp);
+    return pd;
+}
+#else
+size_t zmalloc_get_private_dirty(void) {
+    return 0;
+}
+#endif

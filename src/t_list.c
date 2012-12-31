@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2009-2012, Salvatore Sanfilippo <antirez at gmail dot com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *   * Neither the name of Redis nor the names of its contributors may be used
+ *     to endorse or promote products derived from this software without
+ *     specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "redis.h"
 
 void signalListAsReady(redisClient *c, robj *key);
@@ -728,18 +757,14 @@ void blockForKeys(redisClient *c, robj **keys, int numkeys, time_t timeout, robj
     list *l;
     int j;
 
-    c->bpop.keys = zmalloc(sizeof(robj*)*numkeys);
-    c->bpop.count = numkeys;
     c->bpop.timeout = timeout;
     c->bpop.target = target;
 
-    if (target != NULL) {
-        incrRefCount(target);
-    }
+    if (target != NULL) incrRefCount(target);
 
     for (j = 0; j < numkeys; j++) {
-        /* Add the key in the client structure, to map clients -> keys */
-        c->bpop.keys[j] = keys[j];
+        /* If the key already exists in the dict ignore it. */
+        if (dictAdd(c->bpop.keys,keys[j],NULL) != DICT_OK) continue;
         incrRefCount(keys[j]);
 
         /* And in the other "side", to map keys -> clients */
@@ -757,6 +782,7 @@ void blockForKeys(redisClient *c, robj **keys, int numkeys, time_t timeout, robj
         }
         listAddNodeTail(l,c);
     }
+
     /* Mark the client as a blocked client */
     c->flags |= REDIS_BLOCKED;
     server.bpop_blocked_clients++;
@@ -765,28 +791,31 @@ void blockForKeys(redisClient *c, robj **keys, int numkeys, time_t timeout, robj
 /* Unblock a client that's waiting in a blocking operation such as BLPOP */
 void unblockClientWaitingData(redisClient *c) {
     dictEntry *de;
+    dictIterator *di;
     list *l;
-    int j;
 
-    redisAssertWithInfo(c,NULL,c->bpop.keys != NULL);
+    redisAssertWithInfo(c,NULL,dictSize(c->bpop.keys) != 0);
+    di = dictGetIterator(c->bpop.keys);
     /* The client may wait for multiple keys, so unblock it for every key. */
-    for (j = 0; j < c->bpop.count; j++) {
+    while((de = dictNext(di)) != NULL) {
+        robj *key = dictGetKey(de);
+
         /* Remove this client from the list of clients waiting for this key. */
-        de = dictFind(c->db->blocking_keys,c->bpop.keys[j]);
-        redisAssertWithInfo(c,c->bpop.keys[j],de != NULL);
-        l = dictGetVal(de);
+        l = dictFetchValue(c->db->blocking_keys,key);
+        redisAssertWithInfo(c,key,l != NULL);
         listDelNode(l,listSearchKey(l,c));
         /* If the list is empty we need to remove it to avoid wasting memory */
         if (listLength(l) == 0)
-            dictDelete(c->db->blocking_keys,c->bpop.keys[j]);
-        decrRefCount(c->bpop.keys[j]);
+            dictDelete(c->db->blocking_keys,key);
     }
+    dictReleaseIterator(di);
 
     /* Cleanup the client structure */
-    zfree(c->bpop.keys);
-    c->bpop.keys = NULL;
-    if (c->bpop.target) decrRefCount(c->bpop.target);
-    c->bpop.target = NULL;
+    dictEmpty(c->bpop.keys);
+    if (c->bpop.target) {
+        decrRefCount(c->bpop.target);
+        c->bpop.target = NULL;
+    }
     c->flags &= ~REDIS_BLOCKED;
     c->flags |= REDIS_UNBLOCKED;
     server.bpop_blocked_clients--;

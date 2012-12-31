@@ -1,10 +1,10 @@
 STD=-std=c99 -pedantic
 WARN=-Wall
 OPT=-O2
-MALLOC=tcmalloc
+MALLOC=tcmalloc_minimal
 CFLAGS=
 LDFLAGS=
 REDIS_CFLAGS=
 REDIS_LDFLAGS=
-PREV_FINAL_CFLAGS=-std=c99 -pedantic -Wall -O2 -g -rdynamic -ggdb -I../deps/hiredis -I../deps/linenoise -I../deps/lua/src -I../deps/leveldb-1.7.0/include -L/usr/local/gperftools/lib -I/usr/local/gperftools/include -DUSE_TCMALLOC
+PREV_FINAL_CFLAGS=-std=c99 -pedantic -Wall -O2 -g -rdynamic -ggdb -I../deps/hiredis -I../deps/linenoise -I../deps/lua/src -I../deps/leveldb-1.8.0/include -I../deps/gperftools-2.0/src -DUSE_TCMALLOC
 PREV_FINAL_LDFLAGS= -g -rdynamic -ggdb
