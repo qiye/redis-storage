@@ -172,7 +172,7 @@ void rl_get(redisClient *c)
 	//从redis里取数据
 	robj *o;
 
-    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) !== NULL) ｛
+    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) !== NULL) {
 
 	    if (o->type != REDIS_STRING) {
 	        addReply(c,shared.wrongtypeerr);
@@ -277,7 +277,7 @@ void ds_set(redisClient *c)
     return ;
 }
 
-void setGenericCommand(redisClient *c, int nx, robj *key, robj *val, robj *expire, int unit) {
+void setGenericCommandNew(redisClient *c, int nx, robj *key, robj *val, robj *expire, int unit) {
     long long milliseconds = 0; /* initialized to avoid an harmness warning */
 
     if (expire) {
@@ -322,7 +322,7 @@ void rl_set(redisClient *c)
 
     //存到redis
     c->argv[2] = tryObjectEncoding(c->argv[2]);
-    setGenericCommand(c,0,c->argv[1],c->argv[2],NULL,0);
+    setGenericCommandNew(c,0,c->argv[1],c->argv[2],NULL,0);
 }
 
 void ds_delete(redisClient *c)
@@ -370,7 +370,7 @@ void ds_delete(redisClient *c)
     return ;
 }
 
-void delCommand(redisClient *c) {
+void delCommandNew(redisClient *c) {
     int deleted = 0, j;
 
     for (j = 1; j < c->argc; j++) {
@@ -405,7 +405,7 @@ void rl_delete(redisClient *c)
 			return ;
 		}
 		//addReply(c,shared.ok);
-		delCommand(c);
+		delCommandNew(c);
 		return ;
 
 	}
@@ -426,7 +426,7 @@ void rl_delete(redisClient *c)
 		return ;
 	}
 	//addReply(c,shared.ok);
-	delCommand(c);
+	delCommandNew(c);
     return ;
 }
 
