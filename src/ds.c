@@ -174,12 +174,9 @@ void rl_get(redisClient *c)
 
     if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) !== NULL) {
 
-	    if (o->type != REDIS_STRING) {
-	        addReply(c,shared.wrongtypeerr);
-	        return REDIS_ERR;
-	    } else {
+	    if (o->type == REDIS_STRING) {
 	        addReplyBulk(c,o);
-	        return REDIS_OK;
+	        return;
 	    }
 	}
 
