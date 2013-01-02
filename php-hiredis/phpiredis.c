@@ -16,6 +16,7 @@ static zend_function_entry phpiredis_functions[] = {
     PHP_FE(phpiredis_disconnect, NULL)
     PHP_FE(phpiredis_command, NULL)
     PHP_FE(phpiredis_command_bs, NULL)
+    PHP_FE(phpiredis_murmurhash2, NULL)
     PHP_FE(phpiredis_multi_command, NULL)
     PHP_FE(phpiredis_format_command, NULL)
     PHP_FE(phpiredis_reader_create, NULL)
@@ -59,6 +60,57 @@ static void convert_redis_to_php(phpiredis_reader* reader, zval* return_value, r
 typedef struct callback {
     zval *function;
 } callback;
+
+unsigned int MurmurHash2 ( const void * key, int len, unsigned int seed )
+{
+	// 'm' and 'r' are mixing constants generated offline.
+	// They're not really 'magic', they just happen to work well.
+
+	const unsigned int m = 0x5bd1e995;
+	const int r = 24;
+
+	// Initialize the hash to a 'random' value
+
+	unsigned int h = seed ^ len;
+
+	// Mix 4 bytes at a time into the hash
+
+	const unsigned char * data = (const unsigned char *)key;
+
+	while(len >= 4)
+	{
+		unsigned int k = *(unsigned int *)data;
+
+		k *= m; 
+		k ^= k >> r; 
+		k *= m; 
+		
+		h *= m; 
+		h ^= k;
+
+		data += 4;
+		len -= 4;
+	}
+	
+	// Handle the last few bytes of the input array
+
+	switch(len)
+	{
+	case 3: h ^= data[2] << 16;
+	case 2: h ^= data[1] << 8;
+	case 1: h ^= data[0];
+	        h *= m;
+	};
+
+	// Do a few final mixes of the hash to ensure the last few
+	// bytes are well-incorporated.
+
+	h ^= h >> 13;
+	h *= m;
+	h ^= h >> 15;
+
+	return h;
+} 
 
 static void php_redis_reader_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
@@ -128,6 +180,22 @@ PHP_MINIT_FUNCTION(phpiredis)
     REGISTER_LONG_CONSTANT("PHPIREDIS_REPLY_STATUS", REDIS_REPLY_STATUS, CONST_PERSISTENT|CONST_CS);
     REGISTER_LONG_CONSTANT("PHPIREDIS_REPLY_ERROR", REDIS_REPLY_ERROR, CONST_PERSISTENT|CONST_CS);
     return SUCCESS;
+}
+
+PHP_FUNCTION(phpiredis_murmurhash2)
+{
+    char *str;
+    int str_size;
+    long seed = 0;
+    unsigned int rc;
+    
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &str, &str_size, &seed) == FAILURE) 
+    {
+        return;
+    }
+    
+    rc = MurmurHash2(str, str_size, seed);
+    RETURN_LONG(rc);
 }
 
 PHP_FUNCTION(phpiredis_pconnect)
