@@ -158,7 +158,7 @@ void rl_get(redisClient *c)
 	//从redis里取数据
 	robj *o;
 
-    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) !== NULL) {
+    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) != NULL) {
 
 	    if (o->type == REDIS_STRING) {
 	        addReplyBulk(c,o);
