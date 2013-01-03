@@ -79,7 +79,6 @@ void ds_init()
 
 void ds_mget(redisClient *c)
 {
-	sds str; 
 	int i, len, pos;
 	size_t val_len;
     char *err, *tmp, *value;
@@ -89,8 +88,8 @@ void ds_mget(redisClient *c)
 	roptions = leveldb_readoptions_create();
 	leveldb_readoptions_set_verify_checksums(roptions, 0);
 	leveldb_readoptions_set_fill_cache(roptions, 1);
-	
-	str = sdsempty();
+
+	addReplyMultiBulkLen(c,c->argc-1);
 	for(i=1; i<c->argc; i++)
 	{
 		err     = NULL;
@@ -109,30 +108,17 @@ void ds_mget(redisClient *c)
 		}
 		else if(val_len > 0)
 		{
-			tmp = urlencode(value, val_len, &pos);
-			str = sdscatlen(str, (char *)c->argv[i]->ptr, len);
-			str = sdscatlen(str, "=", 1);
-			str = sdscatlen(str, tmp, pos);
-			str = sdscatlen(str, "&", 1);
-
-
-			zfree(tmp);
+			addReplyBulkCBuffer(c, value, val_len);
 			leveldb_free(value);
-			tmp   = NULL;
 			value = NULL;
+		}
+		else 
+		{
+			addReply(c,shared.nullbulk);
+
 		}
 	}
 	leveldb_readoptions_destroy(roptions);
-	
-	if(sdslen(str) == 0)
-	{
-		addReply(c,shared.nullbulk);
-		sdsfree(str);
-		return ;
-	}
-	str = sdsrange(str, 0, sdslen(str)-2);
-    addReplyBulkCBuffer(c, str, sdslen(str));
-    sdsfree(str);
 }
 
 void ds_get(redisClient *c)
@@ -167,6 +153,23 @@ void ds_get(redisClient *c)
     addReplyBulkCBuffer(c, value, val_len);
     leveldb_free(value);
 }
+void rl_get(redisClient *c)
+{
+	//从redis里取数据
+	robj *o;
+
+    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) != NULL) {
+
+	    if (o->type == REDIS_STRING) {
+	        addReplyBulk(c,o);
+	        return;
+	    }
+	}
+
+	ds_get(c);
+}
+
+
 
 void ds_mset(redisClient *c)
 {
@@ -229,6 +232,30 @@ void ds_set(redisClient *c)
     return ;
 }
 
+void rl_set(redisClient *c)
+{
+	char *key, *value;
+    char *err = NULL;
+    leveldb_writeoptions_t *woptions;
+
+    woptions = leveldb_writeoptions_create();
+
+    key   = (char *)c->argv[1]->ptr;
+    value = (char *)c->argv[2]->ptr;
+    leveldb_put(server.ds_db, woptions, key, strlen(key), value, strlen(value), &err);
+    leveldb_writeoptions_destroy(woptions);
+    if(err != NULL)
+    {
+        addReplyError(c, err);
+        leveldb_free(err);
+        return ;
+    }
+    //addReply(c,shared.ok);
+
+    //存到redis
+    setCommand(c);
+}
+
 void ds_delete(redisClient *c)
 {
 	int  i;
@@ -272,6 +299,14 @@ void ds_delete(redisClient *c)
 	addReply(c,shared.ok);
 
     return ;
+}
+
+
+
+void rl_delete(redisClient *c)
+{
+	ds_delete(c);
+    delCommand(c);
 }
 
 void ds_close()

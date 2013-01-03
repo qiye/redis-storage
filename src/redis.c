@@ -114,10 +114,13 @@ struct redisCommand *commandTable;
  */
 struct redisCommand redisCommandTable[] = {
     {"ds_get",ds_get,2,"r",0,NULL,1,1,1,0,0},
+    {"rl_get",rl_get,2,"r",0,NULL,1,1,1,0,0},
     {"ds_mget",ds_mget,-2,"r",0,NULL,1,-1,1,0,0},
     {"ds_mset",ds_mset,-3,"wm",0,NULL,1,-1,2,0,0},
     {"ds_del",ds_delete,-2,"w",0,noPreloadGetKeys,1,-1,1,0,0},
+    {"rl_del",rl_delete,-2,"w",0,noPreloadGetKeys,1,-1,1,0,0},
     {"ds_set",ds_set,3,"wm",0,noPreloadGetKeys,1,1,1,0,0},
+    {"rl_set",rl_set,3,"wm",0,noPreloadGetKeys,1,1,1,0,0},
     {"get",getCommand,2,"r",0,NULL,1,1,1,0,0},
     {"set",setCommand,3,"wm",0,noPreloadGetKeys,1,1,1,0,0},
     {"setnx",setnxCommand,3,"wm",0,noPreloadGetKeys,1,1,1,0,0},

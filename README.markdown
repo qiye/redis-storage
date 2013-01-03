@@ -1,3 +1,12 @@
+新增三个命令
+=========
+<pre>
+rl_set name shenzhe  //先把数据存到leveldb，再存到redis
+rl_get name          //先尝试从redis取数据，如没取到，再尝试从redis取数据
+rl_del name          //先从leveldb删除数据，再从redis删除数据
+</pre>
+
+
 redis-storage
 =========
   - 基于最新的redis-2.6.7开发的

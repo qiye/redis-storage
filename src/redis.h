@@ -1228,6 +1228,9 @@ void ds_set(redisClient *c);
 void ds_mset(redisClient *c);
 void ds_mget(redisClient *c);
 void ds_delete(redisClient *c);
+void rl_delete(redisClient *c);
+void rl_get(redisClient *c);
+void rl_set(redisClient *c);
 
 #define redisDebug(fmt, ...) \
     printf("DEBUG %s:%d > " fmt "\n", __FILE__, __LINE__, __VA_ARGS__)
