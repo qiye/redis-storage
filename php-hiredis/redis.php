@@ -58,11 +58,6 @@ class redis
         $data =  phpiredis_command_bs($this->conn, $params);	
 		if($data == "NULL")
 			return NULL;
-		else if($method == "ds_mget")
-		{
-			parse_str($data, $out);
-			return $out;
-		}
 		return $data;
 	}
 

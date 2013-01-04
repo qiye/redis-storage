@@ -1,21 +1,13 @@
-新增三个命令
-=========
-<pre>
-rl_set name shenzhe  //先把数据存到leveldb，再存到redis
-rl_get name          //先尝试从redis取数据，如没取到，再尝试从redis取数据
-rl_del name          //先从leveldb删除数据，再从redis删除数据
-</pre>
-
 
 redis-storage
 =========
   - 基于最新的redis-2.6.7开发的
   - 用luajit替换LUA,增强lua执行性能
-  - author: 七夜
+  - author: 七夜, shenzhe
   - QQ: 531020471
   - QQ群: 62116204(已满)
   - QQ群: 154249567 (未满)
-  - mail: lijinxing@gmail.com
+  - mail: lijinxing@gmail.com, shenzhe163@gmail.com
 
 
     
@@ -54,6 +46,9 @@ ds_del name
 ds_mset key value age 20
 ds_mget key age
 ds_del key age
+rl_set name shenzhe  //先把数据存到leveldb，再存到redis
+rl_get name          //先尝试从redis取数据，如没取到，再尝试从redis取数据
+rl_del name          //先从leveldb删除数据，再从redis删除数据
 </pre>
 
 
@@ -79,21 +74,23 @@ $data = $db->ds_mget( "name", "age");
 print_r($data);
 </pre>
 
-由shenzhe同学开发的加强版 phpredis 专门针对redis-storage的php扩展
-=========
-<pre>
-https://github.com/shenzhe/phpredis
-    
-$redis->dsGet($key): 从leveldb取出数据
-$redis->dsMGet(array $keys) : 批量从leveldb取出数据,注：反回的是一个string：key1=val1&key2=val2, 需要用 parse_str 获取数组
-$redis->dsSet($key, $value): 把数据存到leveldb
-$redis->dsMSet(array $keys) :批量把数据存到leveldb; keys结构 array("key1"=>"val1", "key2"=>"val2")
-$redis->dsDel($key):  从leveldb删除数据， $key可以是字符串，也可是key的数组集合（相当于批量删除）
-</pre>
-
-由shenzhe同学开发的zphp(专用于社交游戏 && 网页游戏的服务器端开发框架 ).集成了redis-storage 操作
+php开发者推荐使用 phpredis 加强版 专门针对redis-storage的php扩展
 =========
 
+地址： https://github.com/shenzhe/phpredis
+
 <pre>
-https://github.com/shenzhe/zphp
+
+$redis->dsSet("name", "shenzhe");  								//把数据存到leveldb
+$redis->dsGet("name");            						 		//从leveldb取出数据, 输出 shenzhe
+$redis->dsMSet(array("daniu"=>"qiye","cainiao"=>"shenzhe"));	//批量把数据存到leveldb; keys结构 array("key1"=>"val1", "key2"=>"val2")       
+$redis->dsMGet(array("qiye", "cainiao"));       				//批量从leveldb取出数据
+$redis->dsDel("name");               							//从leveldb删除数据， $key可以是字符串，也可是key的数组集合（相当于批量删除）
+$redis->dsDel(array("daniu","cainiao"));               			//从leveldb删除数据， $key可以是字符串，也可是key的数组集合（相当于批量删除）
+$redis->rlSet("name", "zeze");       							//先把数据存到leveldb，再存到redis
+$redis->rlGet("name");
+$redis->get("name");
+$redis->dsGet("name");
+$redis->rlDel("name");
+
 </pre>
