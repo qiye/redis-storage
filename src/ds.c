@@ -81,7 +81,7 @@ void ds_mget(redisClient *c)
 {
 	int i, len, pos;
 	size_t val_len;
-    char *err, *tmp, *value;
+    char *err, *value;
     
 	leveldb_readoptions_t *roptions;
     
@@ -100,7 +100,6 @@ void ds_mget(redisClient *c)
 	    if(err != NULL)
 		{
 			addReplyError(c, err);
-			sdsfree(str);
 			leveldb_free(err);
 			leveldb_free(value);
 			leveldb_readoptions_destroy(roptions);
