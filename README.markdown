@@ -57,6 +57,7 @@ ds:path /usr/local/redis/db/leveldb  //leveldb save path
 
 redis new cmd 用法跟redis的一样
 =========
+<pre>
 ds_append
 ds_incrby
 ds_hdel
