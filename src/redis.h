@@ -37,6 +37,7 @@
 #include "solarisfixes.h"
 #endif
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include <syslog.h>
@@ -1227,10 +1229,23 @@ void ds_get(redisClient *c);
 void ds_set(redisClient *c);
 void ds_mset(redisClient *c);
 void ds_mget(redisClient *c);
+
+void ds_append(redisClient *c);
+void ds_incrby(redisClient *c);
+
+void ds_hdel(redisClient *c);
+void ds_hget(redisClient *c);
+void ds_hset(redisClient *c);
+void ds_hmget(redisClient *c);
+void ds_hmset(redisClient *c);
+void ds_hincrby(redisClient *c);
+void ds_hgetall(redisClient *c);
+
 void ds_delete(redisClient *c);
 void rl_delete(redisClient *c);
 void rl_get(redisClient *c);
 void rl_set(redisClient *c);
+
 
 #define redisDebug(fmt, ...) \
     printf("DEBUG %s:%d > " fmt "\n", __FILE__, __LINE__, __VA_ARGS__)

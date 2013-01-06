@@ -1,3 +1,21 @@
+新增加字符串函数
+=========
+<pre>
+ds_append
+ds_incrby
+</pre>
+
+新增加类似redis的hashs功能,用法一样
+=========
+<pre>
+ds_hdel
+ds_hget
+ds_hset
+ds_hmget
+ds_hmset
+ds_hincrby
+ds_hgetall
+</pre>
 
 redis-storage
 =========
@@ -37,9 +55,17 @@ ds:block_restart_interval 16
 ds:path /usr/local/redis/db/leveldb  //leveldb save path
 </pre>
 
-redis new cmd
+redis new cmd 用法跟redis的一样
 =========
-<pre>
+ds_append
+ds_incrby
+ds_hdel
+ds_hget
+ds_hset
+ds_hmget
+ds_hmset
+ds_hincrby
+ds_hgetall    
 ds_set name qiye
 ds_get name
 ds_del name 
