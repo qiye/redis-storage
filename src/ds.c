@@ -81,6 +81,9 @@ void ds_init()
 
 void ds_mget(redisClient *c)
 {
+    bool is_int;
+	int64_t recore;
+
 	int i, len, pos;
 	size_t val_len;
     char *err, *value;
@@ -109,7 +112,21 @@ void ds_mget(redisClient *c)
 		}
 		else if(val_len > 0)
 		{
-			addReplyBulkCBuffer(c, value, val_len);
+            is_int = true;
+            for(i=0; value[i]!=0; i++)
+            {
+                is_int = isgraph(value[i]) ? false : true;
+            }
+    
+            if(is_int)
+            {
+                recore = *(int64_t *)value;
+                addReplyLongLong(c, recore);
+            }
+            else
+            {
+                addReplyBulkCBuffer(c, value, val_len);
+            }
 			leveldb_free(value);
 			value = NULL;
 		}
