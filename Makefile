@@ -11,6 +11,7 @@ init:
 	cd deps/gperftools-2.0 && ./configure --enable-minimal --enable-frame-pointers && make
 	cd deps/snappy-1.0.5 && ./configure && make
 	cd deps/leveldb-1.8.0 && make
+	cd deps/linenoise && make
 	cp ./deps/leveldb-1.8.0/libleveldb.so.1 /usr/local/lib
 	cp ./deps/snappy-1.0.5/.libs/libsnappy.so.1 /usr/local/lib
 	ldconfig
