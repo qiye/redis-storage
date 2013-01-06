@@ -47,7 +47,18 @@ class redis
     
         return false;
     }
-
+    private function array_to_hash($data)
+    {
+        $len    = count($data);
+        $recore = array();    
+        
+        for($i=0; $i<$len; $i++)
+        {
+            $recore[$data[$i++]] = $data[$i]; 
+        }
+        
+        return $recore;
+    }
     public function __call($method, $params)
     {
         if(is_null($params))
@@ -58,7 +69,10 @@ class redis
         $data =  phpiredis_command_bs($this->conn, $params);	
 		if($data == "NULL")
 			return NULL;
-		return $data;
+        if(strcasecmp($method, "ds_mget") == 0 || strcasecmp($method, "ds_hmget") == 0)
+		    return $this->array_to_hash($data);
+        
+        return $data;
 	}
 
 
