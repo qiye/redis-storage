@@ -1,10 +1,10 @@
-redis-storage命令手册
+redis-storage command manual
 =========
 [https://github.com/qiye/redis-storage/wiki/redis-storage-manual](https://github.com/qiye/redis-storage/wiki/redis-storage-manual)
 
-redis-storage
+overview
 =========
-  - 基于最新的redis-2.6.7, leveldb开发的,实现海量数据高效数据持久存储
+  - 基于最新的redis-2.6.7, leveldb开发的,实现海量、高效数据持久存储
   - 实现redis的string和hashs功能函数,完全兼容redis客户端
   - 用luajit替换LUA,增强lua执行性能
   - author: 七夜, shenzhe
@@ -14,20 +14,19 @@ redis-storage
   - mail: lijinxing@gmail.com, shenzhe163@gmail.com
 
 
-    
-redis-storage install
+Install
 =========
 <pre>
-https://github.com/qiye/redis-storage 获取源码
+https://github.com/qiye/redis-storage/archive/master.zip get source code
     
 make init
 make MALLOC=tcmalloc_minimal
 
-这一步需要root权限
+need root
 make install PREFIX=/usr/local/redis
 </pre>
 
-修改redis配置文件
+redis.conf
 =========
 <pre>
 ds:create_if_missing 1                //if the specified database didn't exist will create a new one
