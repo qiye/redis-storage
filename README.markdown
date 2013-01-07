@@ -1,21 +1,6 @@
-新增加字符串函数
+redis-storage命令手册
 =========
-<pre>
-ds_append
-ds_incrby
-</pre>
-
-新增加类似redis的hashs功能,用法一样
-=========
-<pre>
-ds_hdel
-ds_hget
-ds_hset
-ds_hmget
-ds_hmset
-ds_hincrby
-ds_hgetall
-</pre>
+[https://github.com/qiye/redis-storage/wiki/redis-storage-manual](https://github.com/qiye/redis-storage/wiki/redis-storage-manual)
 
 redis-storage
 =========
@@ -29,7 +14,7 @@ redis-storage
 
 
     
-安装 redis-storage
+redis-storage install
 =========
 <pre>
 https://github.com/qiye/redis-storage 获取源码
@@ -53,29 +38,6 @@ ds:block_size 4096
 ds:max_open_files 8000               //leveldb最多可以使用的檔案數，一個檔案可以儲存 2MB 的資料。
 ds:block_restart_interval 16
 ds:path /usr/local/redis/db/leveldb  //leveldb save path
-</pre>
-
-redis new cmd 用法跟redis的一样
-=========
-<pre>
-ds_append
-ds_incrby
-ds_hdel
-ds_hget
-ds_hset
-ds_hmget
-ds_hmset
-ds_hincrby
-ds_hgetall    
-ds_set name qiye
-ds_get name
-ds_del name 
-ds_mset key value age 20
-ds_mget key age
-ds_del key age
-rl_set name shenzhe  //先把数据存到leveldb，再存到redis
-rl_get name          //先尝试从redis取数据，如没取到，再尝试从redis取数据
-rl_del name          //先从leveldb删除数据，再从redis删除数据
 </pre>
 
 
