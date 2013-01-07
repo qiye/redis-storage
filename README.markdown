@@ -4,7 +4,8 @@ redis-storage命令手册
 
 redis-storage
 =========
-  - 基于最新的redis-2.6.7开发的
+  - 基于最新的redis-2.6.7, leveldb开发的,实现海量数据高效数据持久存储
+  - 实现redis的string和hashs功能函数,完全兼容redis客户端
   - 用luajit替换LUA,增强lua执行性能
   - author: 七夜, shenzhe
   - QQ: 531020471
