@@ -79,6 +79,161 @@ void ds_init()
 	}
 }
 
+void ds_keys_desc(redisClient *c)
+{
+    sds str, header;
+    
+    ulong limit;
+    const char *key;
+    size_t key_len, len, i;
+    
+    leveldb_iterator_t    *iter;
+    leveldb_readoptions_t *roptions;
+    
+    limit    = 0;
+    limit    = strtoul(c->argv[1]->ptr, NULL, 10);
+	roptions = leveldb_readoptions_create();
+	leveldb_readoptions_set_verify_checksums(roptions, 0);
+	leveldb_readoptions_set_fill_cache(roptions, 1);
+    
+    i       = 0;
+    len     = 0;
+    str     = sdsempty();
+    iter    = leveldb_create_iterator(server.ds_db, roptions);
+    
+    for(leveldb_iter_seek_to_last(iter); leveldb_iter_valid(iter); leveldb_iter_prev(iter))
+    {
+        key_len = 0;
+        key     = leveldb_iter_key(iter, &key_len);
+        
+        if(strchr(key, '*') != NULL)
+        {
+            if(key[(key_len-1)] == '*')
+            {
+                str     = sdscatprintf(str, "$%zu\r\n", (key_len-1));
+                str     = sdscatlen(str, key, key_len-1);
+                str     = sdscatlen(str, "\r\n", 2);
+                i++;
+            }
+        }
+        else
+        {
+            str = sdscatprintf(str, "$%zu\r\n", key_len);
+            str = sdscatlen(str, key, key_len);
+            str = sdscatlen(str, "\r\n", 2);
+            i++;
+        }
+
+        if(limit != 0 && i == limit)
+            break;
+        
+    }
+    
+    leveldb_iter_destroy(iter);
+    leveldb_readoptions_destroy(roptions);
+    
+    if(i == 0)
+    {
+        addReply(c,shared.nullbulk);
+    }
+    else
+    {   
+        header = sdsempty();
+        header = sdscatprintf(header, "*%zu\r\n", i);
+        header = sdscatlen(header, str, sdslen(str));
+        
+        addReplySds(c, header);
+        sdsfree(str);
+        sdsfree(header);
+    }
+    return ;
+}
+
+void ds_keys_asc(redisClient *c)
+{
+    sds str, header;
+    char *keyword = NULL;
+    
+    ulong limit;
+    const char *key;
+    size_t key_len, len, i;
+    
+    leveldb_iterator_t    *iter;
+    leveldb_readoptions_t *roptions;
+    
+    limit    = 0;
+    limit    = strtoul(c->argv[1]->ptr, NULL, 10);
+	roptions = leveldb_readoptions_create();
+	leveldb_readoptions_set_verify_checksums(roptions, 0);
+	leveldb_readoptions_set_fill_cache(roptions, 1);
+    
+    i       = 0;
+    len     = 0;
+    str     = sdsempty();
+    iter    = leveldb_create_iterator(server.ds_db, roptions);
+    
+    for(leveldb_iter_seek_to_first(iter); leveldb_iter_valid(iter); leveldb_iter_next(iter))
+    {
+        key_len = 0;
+        key     = leveldb_iter_key(iter, &key_len);
+        
+        if(key[(key_len-1)] == '*')
+        {
+            if(keyword != NULL)
+            {
+                zfree(keyword);
+                keyword = NULL;
+            }
+            len     = key_len;
+            keyword = zmalloc(key_len+1);
+            strncpy(keyword, key, key_len);
+            str     = sdscatprintf(str, "$%zu\r\n", (key_len-1));
+            str     = sdscatlen(str, key, key_len-1);
+            str     = sdscatlen(str, "\r\n", 2);
+            i++;
+        }
+        else if((keyword != NULL) && (strncmp(keyword, key, len) == 0))
+        {
+            continue;
+        }
+        else
+        {
+            str = sdscatprintf(str, "$%zu\r\n", key_len);
+            str = sdscatlen(str, key, key_len);
+            str = sdscatlen(str, "\r\n", 2);
+            i++;
+        }
+
+        if(limit != 0 && i == limit)
+            break;
+        
+    }
+    
+    if(keyword != NULL)
+    {
+        zfree(keyword);
+        keyword = NULL;
+    }
+    leveldb_iter_destroy(iter);
+    leveldb_readoptions_destroy(roptions);
+    
+    if(i == 0)
+    {
+        addReply(c,shared.nullbulk);
+    }
+    else
+    {   
+        header = sdsempty();
+        header = sdscatprintf(header, "*%zu\r\n", i);
+        header = sdscatlen(header, str, sdslen(str));
+        
+        addReplySds(c, header);
+        sdsfree(str);
+        sdsfree(header);
+    }
+    return ;
+}
+
 void ds_mget(redisClient *c)
 {
 	int i;
@@ -450,31 +605,17 @@ void ds_hgetall(redisClient *c)
     keyword = zmalloc(len+1);
     memcpy(keyword, str, len);
 
-    leveldb_iter_seek(iter, keyword, len);
-    
-    if(!leveldb_iter_valid(iter))
-    {
-        sdsfree(str);
-        zfree(keyword);
-        addReply(c,shared.nullbulk);
-        leveldb_iter_destroy(iter);
-        leveldb_readoptions_destroy(roptions);
-        return ;
-    }
-    
     sdsclear(str);
-    
-    while(1)
+    for(leveldb_iter_seek(iter, keyword, len); leveldb_iter_valid(iter); leveldb_iter_next(iter))
     {
-        leveldb_iter_next(iter);
-        if(!leveldb_iter_valid(iter))
-            break;
         
         key_len = value_len = 0;
         key   = leveldb_iter_key(iter, &key_len);
         value = leveldb_iter_value(iter, &value_len);
         
-        if(strncmp(keyword, key, len) != 0)
+        if(key_len == len)
+            continue;
+        else if(strncmp(keyword, key, len) != 0)
             break;
         
         str = sdscatprintf(str, "$%zu\r\n", (key_len-len));
@@ -755,7 +896,7 @@ void ds_append(redisClient *c)
     {
         recore = sdscpy(recore, value);
     }    
-    recore = sdscat(recore, c->argv[1]->ptr);
+    recore = sdscat(recore, c->argv[2]->ptr);
     woptions = leveldb_writeoptions_create();
     
     leveldb_put(server.ds_db, woptions, c->argv[1]->ptr, sdslen((sds)c->argv[1]->ptr), recore, sdslen(recore), &err);

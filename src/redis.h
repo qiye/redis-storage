@@ -1232,6 +1232,9 @@ void ds_mget(redisClient *c);
 
 void ds_append(redisClient *c);
 void ds_incrby(redisClient *c);
+void ds_keys_asc(redisClient *c);
+void ds_keys_desc(redisClient *c);
+
 
 void ds_hdel(redisClient *c);
 void ds_hget(redisClient *c);
@@ -1240,8 +1243,8 @@ void ds_hmget(redisClient *c);
 void ds_hmset(redisClient *c);
 void ds_hincrby(redisClient *c);
 void ds_hgetall(redisClient *c);
-
 void ds_delete(redisClient *c);
+
 void rl_delete(redisClient *c);
 void rl_get(redisClient *c);
 void rl_set(redisClient *c);
