@@ -130,8 +130,3 @@ https://github.com/agentzh/redis2-nginx-module
 
 https://github.com/agentzh/lua-resty-redis
 
-<pre>
-
-none
-
-</pre>
