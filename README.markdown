@@ -3,7 +3,7 @@
 <pre>
 - ds_keys_asc(正排遍历)
 - ds_keys_desc(倒序遍历)
-具体做法见 redis-storage manual
+具体使用方法见 redis-storage manual
 </pre>    
 redis-storage manual
 =========
