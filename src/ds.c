@@ -477,9 +477,9 @@ void ds_hgetall(redisClient *c)
         if(strncmp(keyword, key, len) != 0)
             break;
         
-        str = sdscatprintf(str, "$%lu\r\n", key_len-len);
+        str = sdscatprintf(str, "$%zu\r\n", (key_len-len));
         str = sdscatlen(str, key+len, key_len-len);
-        str = sdscatprintf(str, "\r\n$%lu\r\n", value_len);
+        str = sdscatprintf(str, "\r\n$%zu\r\n", value_len);
         str = sdscatlen(str, value, value_len);
         str = sdscatlen(str, "\r\n", 2);
         
@@ -496,7 +496,7 @@ void ds_hgetall(redisClient *c)
     else
     {   
         header = sdsempty();
-        header = sdscatprintf(header, "*%lu\r\n", i*2);
+        header = sdscatprintf(header, "*%zu\r\n", (i*2));
         header = sdscatlen(header, str, sdslen(str));
         addReplySds(c, header);
         sdsfree(header);
