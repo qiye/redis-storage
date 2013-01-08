@@ -5,7 +5,7 @@ default: all
 .DEFAULT:
 	cd deps/lua && $(MAKE) $@
 	cd deps/hiredis && $(MAKE) $@
-	cd deps/linenoise && $(MAKE) $@
+	cd deps/linenoise && $(MAKE)
 	cd src && $(MAKE) $@
 
 init:
