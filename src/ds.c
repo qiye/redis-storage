@@ -443,6 +443,7 @@ void ds_hgetall(redisClient *c)
     str     = sdsempty();
     iter    = leveldb_create_iterator(server.ds_db, roptions);
     
+    
     str     = sdscpy(str, c->argv[1]->ptr);
     str     = sdscatlen(str, "*", 1);
     len     = sdslen(str);
@@ -462,9 +463,10 @@ void ds_hgetall(redisClient *c)
     }
     
     sdsclear(str);
-    leveldb_iter_next(iter);
+    
     while(1)
     {
+        leveldb_iter_next(iter);
         if(!leveldb_iter_valid(iter))
             break;
         
@@ -482,8 +484,10 @@ void ds_hgetall(redisClient *c)
         str = sdscatlen(str, "\r\n", 2);
         
         i++;
-        leveldb_iter_next(iter);
     }
+    
+    leveldb_iter_destroy(iter);
+    leveldb_readoptions_destroy(roptions);
     
     if(i == 0)
     {
@@ -500,8 +504,7 @@ void ds_hgetall(redisClient *c)
     
     sdsfree(str);
     zfree(keyword);
-    leveldb_iter_destroy(iter);
-    leveldb_readoptions_destroy(roptions);
+
     return ;
 }
 

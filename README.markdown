@@ -1,4 +1,4 @@
-redis-storage command manual
+redis-storage manual
 =========
 [https://github.com/qiye/redis-storage/wiki/redis-storage-manual](https://github.com/qiye/redis-storage/wiki/redis-storage-manual)
 
