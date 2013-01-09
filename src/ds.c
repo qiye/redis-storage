@@ -908,7 +908,7 @@ void ds_append(redisClient *c)
     }
     else
     {
-        addReply(c,shared.ok);
+        addReplyLongLong(c, sdslen(recore));
     }
     
     sdsfree(recore);
