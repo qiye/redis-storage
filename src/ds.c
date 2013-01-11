@@ -802,7 +802,7 @@ void ds_append(redisClient *c)
     recore   = sdsempty();
     if(val_len > 0)
     {
-        recore = sdscpy(recore, value);
+        recore = sdscpylen(recore, value, val_len);
     }    
     recore = sdscat(recore, c->argv[2]->ptr);
     
