@@ -228,9 +228,10 @@ void ds_seek_asc(redisClient *c)
         addReplySds(c, header);
         sdsfree(str);
         sdsfree(header);
-    }*/
+    }
     return ;
 }
+*/
 
 void ds_mget(redisClient *c)
 {
