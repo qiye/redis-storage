@@ -500,6 +500,10 @@ struct redisServer {
 	leveldb_cache_t        *ds_cache;
 	leveldb_options_t      *ds_options;
     leveldb_filterpolicy_t *policy;
+    leveldb_writeoptions_t *woptions;
+    leveldb_readoptions_t  *roptions;
+    //leveldb_iterator_t     *iter;
+    
 	
 	uint16_t     ds_lru_cache;
     uint16_t     ds_create_if_missing;
@@ -1232,9 +1236,14 @@ void ds_mget(redisClient *c);
 
 void ds_append(redisClient *c);
 void ds_incrby(redisClient *c);
+
+void ds_exists(redisClient *c);
+
+/*
 void ds_keys_asc(redisClient *c);
 void ds_keys_desc(redisClient *c);
-
+*/
+void ds_hexists(redisClient *c);
 
 void ds_hdel(redisClient *c);
 void ds_hget(redisClient *c);
