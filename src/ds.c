@@ -1,5 +1,7 @@
 #include "redis.h"
 
+//感谢泽泽,skdear 提供补丁
+
 /*
 static char *urlencode(char const *s, int len, int *new_length)
 {
@@ -91,15 +93,23 @@ void ds_exists(redisClient *c)
     int                   i;
     char                  *err;
     leveldb_iterator_t    *iter;
+	char *kp;size_t kl;
     
     iter     = leveldb_create_iterator(server.ds_db, server.roptions);
     addReplyMultiBulkLen(c, c->argc-1);
 	for(i=1; i<c->argc; i++)
 	{
         leveldb_iter_seek(iter, c->argv[i]->ptr, sdslen((sds)c->argv[i]->ptr));
-        if(leveldb_iter_valid(iter))
-            addReplyLongLong(c, 1);
-        else
+        if(leveldb_iter_valid(iter)){
+		  
+		  kp = leveldb_iter_key(iter,&kl);
+
+		  if( sdslen((sds)c->argv[i]->ptr) == kl && 0 == memcmp(c->argv[i]->ptr,kp,kl))
+			addReplyLongLong(c,1);
+		  else
+			addReplyLongLong(c,0);
+		  
+        }else
             addReplyLongLong(c, 0);
 	}
     
@@ -124,6 +134,7 @@ void ds_hexists(redisClient *c)
     sds                   key;
     char                  *err;
     leveldb_iterator_t    *iter;
+	char *kp;size_t kl;
     
     key      = sdsempty();
     iter     = leveldb_create_iterator(server.ds_db, server.roptions);
@@ -136,9 +147,15 @@ void ds_hexists(redisClient *c)
         key      = sdscat(key, c->argv[i]->ptr);
         
         leveldb_iter_seek(iter, key, sdslen(key));
-        if(leveldb_iter_valid(iter))
-            addReplyLongLong(c, 1);
-        else
+        if(leveldb_iter_valid(iter)){
+			kp = leveldb_iter_key(iter,&kl);
+
+			if( sdslen(key) == kl && 0 == memcmp(key,kp,kl))
+			  addReplyLongLong(c,1);
+			else
+			  addReplyLongLong(c,0);
+			
+        }else
             addReplyLongLong(c, 0);
 	}
     
@@ -533,7 +550,10 @@ void ds_hset(redisClient *c)
 	leveldb_writebatch_destroy(wb);
     sdsfree(str);
     
-    addReply(c,shared.ok);
+    //addReply(c,shared.ok);
+	// keep the same return type as redis's hset
+	// TODO: how to distinguish the create(return 1) and update(return 0) ?
+    addReplyLongLong(c,1);
     return ;
 }
 
@@ -555,20 +575,41 @@ void ds_hgetall(redisClient *c)
     len     = sdslen(str);
     keyword = zmalloc(len+1);
     memcpy(keyword, str, len);
-    
+
+	keyword[len] = '\0';
+	
     sdsclear(str);
     iter = leveldb_create_iterator(server.ds_db, server.roptions);
-    for(leveldb_iter_seek(iter, keyword, len); leveldb_iter_valid(iter); leveldb_iter_next(iter))
+    for(leveldb_iter_seek(iter, keyword, len);leveldb_iter_valid(iter); leveldb_iter_next(iter))
     {
         
         key_len = value_len = 0;
         key   = leveldb_iter_key(iter, &key_len);
-        value = leveldb_iter_value(iter, &value_len);
-        
-        if(key_len == len)
-            continue;
-        else if(strncmp(keyword, key, len) != 0)
+		
+		// IMPORTANT:
+		// leveldb_iter_valid(iter) means the current key >= what we want
+		// for example:  seek "thekey*" 
+		//               thekey*  is valid
+		//               thekey*1 is valid
+		//               thekez*  is *ALSO VALID* 'z'>'y'
+		// the code:
+		//         if(key_len == len)
+		//             continue;
+		//         else if(strncmp(keyword, key, len) != 0)
+		//             break;
+		//  is ok, but will do lot's of useless loop in such condition:
+		//  ds_hgetall "a" , and there's no a* in leveldb ,and lot's of b1 b2 ... bN in leveldb :( 
+
+		// make sure the hashtable is the same
+        if(strncmp(keyword, key, len) != 0)
             break;
+
+		// skip the hashtable itself
+		if(key_len == len)
+            continue;
+
+		// now, key is valid and get value here
+        value = leveldb_iter_value(iter, &value_len);
         
         str = sdscatprintf(str, "$%zu\r\n", (key_len-len));
         str = sdscatlen(str, key+len, key_len-len);
@@ -594,11 +635,19 @@ void ds_hgetall(redisClient *c)
     }
     else
     {   
+	  
         header = sdsempty();
         header = sdscatprintf(header, "*%zu\r\n", (i*2));
         header = sdscatlen(header, str, sdslen(str));
         addReplySds(c, header);
-        sdsfree(header);
+
+        //sdsfree(header);
+
+		// IMPORTANT:
+		// addReplySds(c,ptr) will call sdsfree(ptr) before returned.
+		// DO NOT call sdsfree(header) here !!!!
+		// 崩溃了无数次，坑爹的gdb把问题定位在leveldb_iter_seek()上，
+		// 丫问题居然在这里....
     }
     
     sdsfree(str);
@@ -661,7 +710,10 @@ void ds_hdel(redisClient *c)
     		addReplyError(c, err);
     		leveldb_free(err);
         }
-        
+     
+		// No way to keep the same return type as redis's HDEL
+		// HDEL needs at least 2 arguments
+		// so,... send "OK"
         addReply(c,shared.ok);
 	}
 	
@@ -687,7 +739,12 @@ void ds_hdel(redisClient *c)
 		leveldb_free(err);
 		return ;
 	}
-	addReply(c,shared.ok);
+
+	// keep the same return type as redis's HDEL
+	// Return value
+	//  Integer reply: the number of fields that were removed from the hash, not including specified but non existing fields.
+	// TODO: count the delete operation
+	addReplyLongLong(c,c->argc-2);
 
     return ;
 }
@@ -877,7 +934,9 @@ void ds_delete(redisClient *c)
 			leveldb_free(err);
 			return ;
 		}
-		addReply(c,shared.ok);
+		//addReply(c,shared.ok);
+		// keep the same return type as redis's del
+		addReplyLongLong(c,1);
 		return ;
 	}
 	
@@ -897,7 +956,11 @@ void ds_delete(redisClient *c)
 		leveldb_free(err);
 		return ;
 	}
-	addReply(c,shared.ok);
+	//addReply(c,shared.ok);
+	// keep the same return type as redis's del
+	// TODO:  count the delete operation
+	//  I don't know how to count the delete operation, use argc-1 instand.
+	addReplyLongLong(c,c->argc-1);
 
     return ;
 }
