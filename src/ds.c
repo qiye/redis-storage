@@ -1,7 +1,5 @@
 #include "redis.h"
 
-//感谢泽泽,skdear 提供补丁
-
 /*
 static char *urlencode(char const *s, int len, int *new_length)
 {
@@ -102,7 +100,7 @@ void ds_exists(redisClient *c)
         leveldb_iter_seek(iter, c->argv[i]->ptr, sdslen((sds)c->argv[i]->ptr));
         if(leveldb_iter_valid(iter)){
 		  
-		  kp = leveldb_iter_key(iter,&kl);
+		  kp = (char *)leveldb_iter_key(iter,&kl);
 
 		  if( sdslen((sds)c->argv[i]->ptr) == kl && 0 == memcmp(c->argv[i]->ptr,kp,kl))
 			addReplyLongLong(c,1);
@@ -148,7 +146,7 @@ void ds_hexists(redisClient *c)
         
         leveldb_iter_seek(iter, key, sdslen(key));
         if(leveldb_iter_valid(iter)){
-			kp = leveldb_iter_key(iter,&kl);
+		  kp = (char*)leveldb_iter_key(iter,&kl);
 
 			if( sdslen(key) == kl && 0 == memcmp(key,kp,kl))
 			  addReplyLongLong(c,1);
@@ -173,44 +171,195 @@ void ds_hexists(redisClient *c)
     
     return ;
 }
-/*
-void ds_seek_asc(redisClient *c)
+
+/**
+ * usage: ds_keys_count startKey endKey
+ * return: integer
+ */
+void ds_keys_count(redisClient *c)
 {
-    sds str, header;
-    char *keyword = NULL;
-    
-    ulong limit;
+	char *err;
+	
     const char *key;
     size_t key_len, len, i;
+	
+	leveldb_iterator_t *iter;
+
+	char *skey,*ekey; //  key pair
+	size_t skey_len,ekey_len;
+	
+	char *k1,*k2;
+	int cmp;
+
+	skey = c->argv[1]->ptr;
+	skey_len = sdslen(c->argv[1]->ptr);
+
+	ekey = c->argv[2]->ptr;
+	ekey_len = sdslen(c->argv[2]->ptr);
+
+
+	// return 0 when skey > ekey
+	k1 = zmalloc(skey_len+1);
+	k2 = zmalloc(ekey_len+1);
+	memcpy(k1,skey,skey_len);
+	memcpy(k2,ekey,ekey_len);
+	k1[skey_len] = k2[ekey_len] = '\0';
+
+	cmp = strcmp(k1,k2);
+	
+	if(cmp>0){
+	  zfree(k1);
+	  zfree(k2);
+	  addReplyLongLong(c,0);
+	  return;
+	}
+
+    i       = 0;
+    len     = 0;
+
+    iter = leveldb_create_iterator(server.ds_db, server.roptions);
+	
+	leveldb_iter_seek(iter,skey,skey_len);
+	
+	for(;leveldb_iter_valid(iter); leveldb_iter_next(iter))
+    {
+        key_len = 0;
+        key     = leveldb_iter_key(iter, &key_len);
+        
+		// skip hashtable and hash field
+		if(memchr(key,'*',key_len) != NULL){
+            continue;
+        }
+
+		if(k1 != NULL){
+		  zfree(k1);
+		  k1 = NULL;
+		}
+
+		k1 = zmalloc(key_len+1);
+		memcpy(k1,key,key_len);
+		k1[key_len] = '\0';
+		
+		cmp = strcmp(k1,k2);
+		
+		if(cmp > 0)
+		  break;
+		
+		i++;
+    }
     
-    limit    = 0;
-    limit    = strtoul(c->argv[1]->ptr, NULL, 10);
+    err = NULL;
+    leveldb_iter_get_error(iter, &err);
+	leveldb_iter_destroy(iter);
+
+    if(err)
+    {
+		addReplyError(c, err);
+		leveldb_free(err);
+	}
+
+	addReplyLongLong(c,i);
+
+	if(k1) zfree(k1);
+	if(k2) zfree(k2);
+
+    return ;
+}
+
+/**
+ * usage: 
+ *  1. ds_keys_asc
+ *  2. ds_keys_asc key
+ *  3. ds_keys_asc 100
+ *  4. ds_keys_asc key 100
+ */
+void ds_keys_asc(redisClient *c)
+{
+    sds str, header;
+	char *err;
+	
+    unsigned long limit;
+    const char *key;
+    size_t key_len, len, i;
+	
+	leveldb_iterator_t *iter;
+
+	char *skey; // start key
+	size_t skey_len=0;
+	int is_limit;
+
+	// max result = 1000,large limit will eat lot's of disk/network io.
+	const unsigned long max_result = 1000;
+	
+    limit    = 30;   //default
+	skey    = NULL; //seek first
     
+	//limit    = strtoul(c->argv[1]->ptr, NULL, 10);
+    
+	if(c->argc > 3){
+	  addReplyError(c,"too many arguments.");
+	  return;
+	}else if(c->argc == 1){
+	  // default limit and seek to first
+	}else if(c->argc == 2){
+	  
+	  //is digit ?
+	  is_limit = 1;
+	  len = sdslen(c->argv[1]->ptr);
+	  i=0;
+	  while(i<len){
+		if(!isdigit(((char *)c->argv[1]->ptr)[i++])){
+		  is_limit=0;
+		  break;
+		}
+	  }
+
+	  if(is_limit){
+		limit = strtoul(c->argv[1]->ptr,NULL,10);
+		
+	  }else{
+
+		// start key
+		skey = c->argv[1]->ptr;
+		skey_len = len;
+	  }
+	}else{
+	  // 3 args
+	  // argv[1] as start key
+	  skey = c->argv[1]->ptr;
+	  skey_len = sdslen(c->argv[1]->ptr);
+
+	  // argv[2] as limit
+	  limit = strtoul(c->argv[2]->ptr,NULL,10);
+	  
+	}
+
+	//check limit
+	if(limit == 0)
+	  limit = 30;
+
+	if(limit > max_result)
+	  limit = max_result;
+	
+
     i       = 0;
     len     = 0;
     str     = sdsempty();
-    for(leveldb_iter_seek_to_first(server.iter); leveldb_iter_valid(server.iter); leveldb_iter_next(server.iter))
+
+    iter = leveldb_create_iterator(server.ds_db, server.roptions);
+	
+	if(skey) //seek key
+	  leveldb_iter_seek(iter,skey,skey_len);
+	else
+	  leveldb_iter_seek_to_first(iter);
+	
+	for(;leveldb_iter_valid(iter); leveldb_iter_next(iter))
     {
         key_len = 0;
-        key     = leveldb_iter_key(server.iter, &key_len);
+        key     = leveldb_iter_key(iter, &key_len);
         
-        if(key[(key_len-1)] == '*')
-        {
-            if(keyword != NULL)
-            {
-                zfree(keyword);
-                keyword = NULL;
-            }
-            len     = key_len;
-            keyword = zmalloc(key_len+1);
-            strncpy(keyword, key, key_len);
-            str     = sdscatprintf(str, "$%zu\r\n", (key_len-1));
-            str     = sdscatlen(str, key, key_len-1);
-            str     = sdscatlen(str, "\r\n", 2);
-            i++;
-        }
-        else if((keyword != NULL) && (strncmp(keyword, key, len) == 0))
-        {
+		// skip hashtable and hash field
+		if(memchr(key,'*',key_len) != NULL){
             continue;
         }
         else
@@ -221,18 +370,21 @@ void ds_seek_asc(redisClient *c)
             i++;
         }
 
-        if(limit != 0 && i == limit)
+        if(i >= limit)
             break;
         
     }
     
-    if(keyword != NULL)
+    err = NULL;
+    leveldb_iter_get_error(iter, &err);
+	leveldb_iter_destroy(iter);
+
+    if(err)
     {
-        zfree(keyword);
-        keyword = NULL;
-    }
-    
-    if(i == 0)
+		addReplyError(c, err);
+		leveldb_free(err);
+	}
+	else if(i == 0)
     {
         addReply(c,shared.nullbulk);
     }
@@ -243,12 +395,177 @@ void ds_seek_asc(redisClient *c)
         header = sdscatlen(header, str, sdslen(str));
         
         addReplySds(c, header);
-        sdsfree(str);
-        sdsfree(header);
+		//addReplySds() will free header
     }
+	sdsfree(str);
     return ;
 }
-*/
+
+/**
+ * usage: 
+ *  1. ds_keys_desc
+ *  2. ds_keys_desc key
+ *  3. ds_keys_desc 100
+ *  4. ds_keys_desc key 100
+ */
+void ds_keys_desc(redisClient *c)
+{
+    sds str, header;
+	char *err;
+	
+    unsigned long limit;
+    const char *key;
+    size_t key_len, len, i;
+	
+	leveldb_iterator_t *iter;
+
+	char *skey; // start key
+	size_t skey_len=0;
+	int is_limit;
+
+	char *ck1=NULL,*ck2=NULL ; // compaire the first key
+
+	// max result = 1000,large limit will eat lot's of disk/network io.
+	const unsigned long max_result = 1000;
+	
+    limit    = 30;   //default
+	skey    = NULL; //seek first
+    
+	//limit    = strtoul(c->argv[1]->ptr, NULL, 10);
+    
+	if(c->argc > 3){
+	  addReplyError(c,"too many arguments.");
+	  return;
+	}else if(c->argc == 1){
+	  // default limit and seek to first
+	}else if(c->argc == 2){
+	  
+	  //is digit ?
+	  is_limit = 1;
+	  len = sdslen(c->argv[1]->ptr);
+	  i=0;
+	  while(i<len){
+		if(!isdigit(((char *)c->argv[1]->ptr)[i++])){
+		  is_limit=0;
+		  break;
+		}
+	  }
+
+	  if(is_limit){
+		limit = strtoul(c->argv[1]->ptr,NULL,10);
+		
+	  }else{
+
+		// start key
+		skey = c->argv[1]->ptr;
+		skey_len = len;
+	  }
+	}else{
+	  // 3 args
+	  // argv[1] as start key
+	  skey = c->argv[1]->ptr;
+	  skey_len = sdslen(c->argv[1]->ptr);
+
+	  // argv[2] as limit
+	  limit = strtoul(c->argv[2]->ptr,NULL,10);
+	  
+	}
+
+	//check limit
+	if(limit == 0)
+	  limit = 30;
+
+	if(limit > max_result)
+	  limit = max_result;
+	
+
+    i       = 0;
+    len     = 0;
+    str     = sdsempty();
+
+    iter = leveldb_create_iterator(server.ds_db, server.roptions);
+	
+	if(skey) //seek key
+	  leveldb_iter_seek(iter,skey,skey_len);
+	else
+	  leveldb_iter_seek_to_last(iter);
+	
+	for(;leveldb_iter_valid(iter); leveldb_iter_prev(iter))
+    {
+        key_len = 0;
+        key     = leveldb_iter_key(iter, &key_len);
+        
+		//fprintf(stderr,"current key:%s\n",key);
+
+		// skip hashtable and hash field
+		if(memchr(key,'*',key_len) != NULL){
+            continue;
+        }
+        else
+        {
+		  
+		  if(skey && ck1 == NULL){
+			// we are in reverse order,and seek() always stop at key>= what we want
+			// so if current key > what we want ,we should skip it.
+
+			// skey and key are both \0 terminated
+			ck1 = (char*)zmalloc(skey_len+1);
+			ck2 = (char*)zmalloc(key_len+1);
+			memcpy(ck1,skey,skey_len);
+			memcpy(ck2,key,key_len);
+			ck1[skey_len] = '\0';
+			ck2[key_len] = '\0';
+
+			//fprintf(stderr,"\n\nkeyF:%s\nkeyS:%s\n\n",ck2,ck1);
+
+			if(strncmp(ck2,ck1,(skey_len > key_len ? skey_len : key_len) + 1 ) > 0)
+			  continue;
+
+		  }
+
+
+            str = sdscatprintf(str, "$%zu\r\n", key_len);
+            str = sdscatlen(str, key, key_len);
+            str = sdscatlen(str, "\r\n", 2);
+            i++;
+        }
+
+        if(i >= limit)
+            break;
+        
+    }
+    
+    err = NULL;
+    leveldb_iter_get_error(iter, &err);
+	leveldb_iter_destroy(iter);
+
+    if(err)
+    {
+		addReplyError(c, err);
+		leveldb_free(err);
+	}
+	else if(i == 0)
+    {
+        addReply(c,shared.nullbulk);
+    }
+    else
+    {   
+        header = sdsempty();
+        header = sdscatprintf(header, "*%zu\r\n", i);
+        header = sdscatlen(header, str, sdslen(str));
+        
+        addReplySds(c, header);
+		//addReplySds() will free header
+    }
+
+	if(ck1)
+	  zfree(ck1);
+	if(ck2)
+	  zfree(ck2);
+
+	sdsfree(str);
+    return ;
+}
 
 void ds_mget(redisClient *c)
 {
@@ -557,6 +874,7 @@ void ds_hset(redisClient *c)
     return ;
 }
 
+
 void ds_hgetall(redisClient *c)
 {
     sds str, header;
@@ -648,6 +966,78 @@ void ds_hgetall(redisClient *c)
 		// DO NOT call sdsfree(header) here !!!!
 		// 崩溃了无数次，坑爹的gdb把问题定位在leveldb_iter_seek()上，
 		// 丫问题居然在这里....
+    }
+    
+    sdsfree(str);
+    
+    return ;
+}
+
+
+void ds_hkeys(redisClient *c)
+{
+    sds str, header;
+    char *keyword = NULL, *err;
+    
+    leveldb_iterator_t    *iter;
+    
+    const char *key;
+    size_t key_len, value_len, len, i;
+    
+    i       = 0;
+    str     = sdsempty();
+    
+    str     = sdscpy(str, c->argv[1]->ptr);
+    str     = sdscatlen(str, "*", 1);
+    len     = sdslen(str);
+    keyword = zmalloc(len+1);
+    memcpy(keyword, str, len);
+
+	keyword[len] = '\0';
+	
+    sdsclear(str);
+    iter = leveldb_create_iterator(server.ds_db, server.roptions);
+    for(leveldb_iter_seek(iter, keyword, len);leveldb_iter_valid(iter); leveldb_iter_next(iter))
+    {
+        
+        key_len = value_len = 0;
+        key   = leveldb_iter_key(iter, &key_len);
+		
+		// make sure the hashtable is the same
+        if(strncmp(keyword, key, len) != 0)
+            break;
+
+		// skip the hashtable itself
+		if(key_len == len)
+            continue;
+
+        str = sdscatprintf(str, "$%zu\r\n", (key_len-len));
+        str = sdscatlen(str, key+len, key_len-len);
+        str = sdscatlen(str, "\r\n", 2);
+        
+        i++;
+    }
+    err = NULL;
+    zfree(keyword);
+    leveldb_iter_get_error(iter, &err);
+    leveldb_iter_destroy(iter);
+    
+    if(err)
+    {
+		addReplyError(c, err);
+		leveldb_free(err);
+    }
+    else if(i == 0)
+    {
+        addReply(c,shared.nullbulk);
+    }
+    else
+    {   
+	  
+        header = sdsempty();
+        header = sdscatprintf(header, "*%zu\r\n", (i*1));
+        header = sdscatlen(header, str, sdslen(str));
+        addReplySds(c, header);
     }
     
     sdsfree(str);

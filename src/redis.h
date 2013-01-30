@@ -1252,7 +1252,11 @@ void ds_hmget(redisClient *c);
 void ds_hmset(redisClient *c);
 void ds_hincrby(redisClient *c);
 void ds_hgetall(redisClient *c);
+void ds_hkeys(redisClient *c);
 void ds_delete(redisClient *c);
+void ds_keys_asc(redisClient *c);
+void ds_keys_desc(redisClient *c);
+void ds_keys_count(redisClient *c);
 
 void rl_delete(redisClient *c);
 void rl_get(redisClient *c);

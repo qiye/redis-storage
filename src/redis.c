@@ -128,15 +128,15 @@ struct redisCommand redisCommandTable[] = {
     {"ds_hmset",ds_hmset,-4,"wm",0,NULL,1,1,1,0,0},
     {"ds_hincrby",ds_hincrby,4,"wm",0,NULL,1,1,1,0,0},
     {"ds_hgetall",ds_hgetall,2,"r",0,NULL,1,1,1,0,0},
+    {"ds_hkeys",ds_hgetall,2,"r",0,NULL,1,1,1,0,0},
     {"ds_append",ds_append,3,"wm",0,NULL,1,1,1,0,0},
     {"ds_incrby",ds_incrby,3,"wm",0,NULL,1,1,1,0,0},
     {"ds_exists",ds_exists,-2,"r",0,NULL,1,-1,1,0,0},
     {"ds_hexists",ds_hexists,-2,"r",0,NULL,1,-1,1,0,0},    
     
-    /*    
-    {"ds_keys_asc",ds_keys_asc,2,"r",0,NULL,1,1,1,0,0},
-    {"ds_keys_desc",ds_keys_desc,2,"r",0,NULL,1,1,1,0,0},
-    */
+    {"ds_keys_asc",ds_keys_asc,-1,"r",0,NULL,1,1,1,0,0},
+    {"ds_keys_desc",ds_keys_desc,-1,"r",0,NULL,1,1,1,0,0},
+    {"ds_keys_count",ds_keys_count,3,"r",0,NULL,1,1,1,0,0},
                         
     {"get",getCommand,2,"r",0,NULL,1,1,1,0,0},
     {"set",setCommand,3,"wm",0,noPreloadGetKeys,1,1,1,0,0},
