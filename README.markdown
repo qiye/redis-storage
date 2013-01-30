@@ -1,9 +1,43 @@
-新增两条命令
+更新说明
 =========
 <pre>
-- ds_exists
-- ds_hexists
-具体使用方法见 redis-storage manual
+增加hash相关几个命令
+ds_hlen
+ds_hvals
+ds_hsetnx
+使用方法和返回类型跟redis的相关命令一致
+
+新增hash遍历方法
+ds_hkeys_asc 正向遍历，默认返回30条key
+使用方法
+1. ds_hkeys_asc
+2. ds_hkeys_asc 50 //返回最多50条
+3. ds_hkeys_asc "key1"  //返回从key1位置开始的最多50条key
+4. ds_hkeys_asc "key1" 100 //返回从key1位置开始的最多100条key
+5. ds_hkeys_asc 0    //0没有意义，返回30条
+5. ds_hkeys_asc 0 30 //从"0"这个key开始返回30条
+特别说明: "key1"可以是不存在的
+ds_hkeys_desc 功能类似，逆向遍历的
+
+ds_hkeys_count startKey endKey // 计算starKey和endKey之间的数量，startKey和endKey可以是不存在的
+
+新增遍历方法
+ds_keys_asc
+ds_keys_desc
+ds_keys_count
+使用方法跟 ds_hkeys_** 的类似
+
+修复几个err处理的潜在bug
+
+
+hash相关的操作除了hincrbyfloat之外已经全部实现
+
+    **特别提醒**
+    hash相关的命令，由于内部存储结构已经改变，如果您在老版本上使用ds_h** 存储过数据，新版本上无法支持。
+
+    这个比较重要
+    
+    感谢skdear 同学提供的 功能补丁.
 </pre>    
 redis-storage manual
 =========
