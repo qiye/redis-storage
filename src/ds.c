@@ -240,7 +240,7 @@ void ds_keys_count(redisClient *c)
  */
 void ds_hkeys_count(redisClient *c)
 {
-	char *err;
+	char *err=NULL;
 	
     const char *key;
     size_t key_len, len, i;
@@ -284,13 +284,13 @@ void ds_hkeys_count(redisClient *c)
 
     iter = leveldb_create_iterator(server.ds_db, server.roptions);
 	
-	leveldb_iter_seek(iter,k1,skey_len+1);
+	leveldb_iter_seek(iter,k1,skey_len + KEY_PREFIX_LENGTH + MEMBER_PREFIX_LENGTH);
 	
 	for(;leveldb_iter_valid(iter); leveldb_iter_next(iter))
     {
         key_len = 0;
         key     = leveldb_iter_key(iter, &key_len);
-        
+
 		if(key_len < KEY_PREFIX_LENGTH + MEMBER_PREFIX_LENGTH
            || 0 != memcmp(key,KEY_PREFIX_HASH,KEY_PREFIX_LENGTH) // not hashkey
            ){
@@ -1324,7 +1324,8 @@ void ds_hset(redisClient *c)
     // append member
     str      = sdscat(str, field);
     leveldb_writebatch_put(wb, str, sdslen(str), value, sdslen((sds)value));
-    
+
+    err = NULL;
 	leveldb_write(server.ds_db, server.woptions, wb, &err);
 	leveldb_writebatch_destroy(wb);
     sdsfree(str);
