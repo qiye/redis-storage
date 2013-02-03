@@ -222,9 +222,9 @@ void ds_keys_count(redisClient *c)
     {
 		addReplyError(c, err);
 		leveldb_free(err);
-	}
-
-	addReplyLongLong(c,i);
+	}else{
+        addReplyLongLong(c,i);
+    }
 
 	if(k1) zfree(k1);
 	if(k2) zfree(k2);
@@ -328,10 +328,9 @@ void ds_hkeys_count(redisClient *c)
     {
 		addReplyError(c, err);
 		leveldb_free(err);
-	}
-
-	addReplyLongLong(c,i);
-
+	}else{
+        addReplyLongLong(c,i);
+    }
 	if(k1) zfree(k1);
 	if(k2) zfree(k2);
 
