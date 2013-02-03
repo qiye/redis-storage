@@ -1778,14 +1778,20 @@ void ds_hdel(redisClient *c)
         {
     		addReplyError(c, err);
     		leveldb_free(err);
+
+            return;
         }
      
 		// No way to keep the same return type as redis's HDEL
 		// HDEL needs at least 2 arguments
 		// so,... send "OK"
         addReply(c,shared.ok);
+
+        return;
 	}
 	
+    err = NULL;
+
 	wb = leveldb_writebatch_create();
 	for(i=2; i<c->argc; i++)
 	{
