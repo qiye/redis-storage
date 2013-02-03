@@ -1244,6 +1244,82 @@ void ds_hincrby(redisClient *c)
     return ;
 }
 
+/**
+ * 跨hash取值
+ * ds_mhget key field [key field ...]
+ */
+void ds_mhget(redisClient *c)
+{
+	int i;
+	sds keyword,str,ret;
+    size_t val_len;
+    char *err = NULL, *value = NULL;
+
+    if( ( (c->argc-1) % 2 ) != 0){
+        addReplyError(c,"syntax error");
+        return;
+    }
+
+	//addReplyMultiBulkLen(c, c->argc-2);
+    
+    keyword = sdsempty();
+    
+
+    str = sdsempty();
+
+	for(i=1; i<c->argc-1; i+=2)
+	{
+		err     = NULL;
+		value   = NULL;
+		val_len = 0;
+        
+        sdsclear(keyword);
+        keyword = sdscatlen(keyword,KEY_PREFIX_HASH,KEY_PREFIX_LENGTH);
+        keyword = sdscat(keyword, c->argv[i]->ptr);
+        keyword = sdscatlen(keyword, MEMBER_PREFIX, MEMBER_PREFIX_LENGTH); 
+        keyword = sdscat(keyword, c->argv[i+1]->ptr);
+
+        //fprintf(stderr,"K:%s\n",keyword);
+        
+		value   = leveldb_get(server.ds_db, server.roptions, keyword, sdslen(keyword), &val_len, &err);
+	    if(err != NULL)
+		{
+            sdsfree(keyword);
+			leveldb_free(value);
+            addReplyError(c, err);
+			leveldb_free(err);
+            sdsfree(str);
+			return ;
+		}
+		else if(val_len > 0)
+		{
+			//addReplyBulkCBuffer(c, value, val_len);
+
+            str = sdscatprintf(str,"$%zu\r\n",val_len);
+            str = sdscatlen(str,value,val_len);
+            str = sdscatlen(str,"\r\n",2);
+
+			leveldb_free(value);
+			value = NULL;
+		}
+		else 
+		{
+			//addReply(c,shared.nullbulk);
+            str = sdscatlen(str,"$-1\r\n",5);//nullbulk
+		}
+	}
+    
+    sdsfree(keyword);
+    
+    ret = sdsempty();
+    ret = sdscatprintf(ret,"*%d\r\n",(c->argc-1)/2);
+    ret = sdscat(ret,str);
+    sdsfree(str);
+
+    addReplySds(c,ret);
+}
+
+
 void ds_hmget(redisClient *c)
 {
 	int i;
