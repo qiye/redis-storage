@@ -1249,6 +1249,7 @@ void ds_hdel(redisClient *c);
 void ds_hget(redisClient *c);
 void ds_hset(redisClient *c);
 void ds_hsetnx(redisClient *c);
+void ds_mhget(redisClient *c);
 void ds_hmget(redisClient *c);
 void ds_hmset(redisClient *c);
 void ds_hincrby(redisClient *c);
