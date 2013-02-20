@@ -53,10 +53,15 @@ void ds_exists(redisClient *c)
     int                   i;
     char                  *err;
     leveldb_iterator_t    *iter;
-	char *kp;size_t kl;
+	char *kp;
+    size_t kl;
+    sds str,ret;
     
     iter     = leveldb_create_iterator(server.ds_db, server.roptions);
-    addReplyMultiBulkLen(c, c->argc-1);
+    //addReplyMultiBulkLen(c, c->argc-1);
+
+    str = sdsempty();
+
 	for(i=1; i<c->argc; i++)
 	{
         leveldb_iter_seek(iter, c->argv[i]->ptr, sdslen((sds)c->argv[i]->ptr));
@@ -65,12 +70,15 @@ void ds_exists(redisClient *c)
 		  kp = (char *)leveldb_iter_key(iter,&kl);
 
 		  if( sdslen((sds)c->argv[i]->ptr) == kl && 0 == memcmp(c->argv[i]->ptr,kp,kl))
-			addReplyLongLong(c,1);
+              //addReplyLongLong(c,1);
+              str = sdscatlen(str,":1\r\n",4);
 		  else
-			addReplyLongLong(c,0);
+              //addReplyLongLong(c,0);
+              str = sdscatlen(str,":0\r\n",4);
 		  
         }else
-            addReplyLongLong(c, 0);
+            //addReplyLongLong(c, 0);
+            str = sdscatlen(str,":0\r\n",4);
 	}
     
     err = NULL;
@@ -81,10 +89,15 @@ void ds_exists(redisClient *c)
     {
 		addReplyError(c, err);
         leveldb_free(err);
-
+        sdsfree(str);
         return ;
     }
     
+    ret = sdsempty();
+    ret = sdscatprintf(ret,"*%d\r\n",c->argc-1);
+    ret = sdscat(ret,str);
+    addReplySds(c,ret);
+    sdsfree(str);
     return ;
 }
 
@@ -94,11 +107,16 @@ void ds_hexists(redisClient *c)
     sds                   key;
     char                  *err;
     leveldb_iterator_t    *iter;
-	char *kp;size_t kl;
+	char *kp;
+    size_t kl;
+    sds str,ret;
     
     key      = sdsempty();
     iter     = leveldb_create_iterator(server.ds_db, server.roptions);
-    addReplyMultiBulkLen(c, c->argc-2);
+    //addReplyMultiBulkLen(c, c->argc-2);
+    
+    str = sdsempty();
+
 	for(i=2; i<c->argc; i++)
 	{
         sdsclear(key);
@@ -112,12 +130,15 @@ void ds_hexists(redisClient *c)
 		  kp = (char*)leveldb_iter_key(iter,&kl);
 
 			if( sdslen(key) == kl && 0 == memcmp(key,kp,kl))
-			  addReplyLongLong(c,1);
+                //addReplyLongLong(c,1);
+                str = sdscatlen(str,":1\r\n",4);
 			else
-			  addReplyLongLong(c,0);
+                //addReplyLongLong(c,0);
+                str = sdscatlen(str,":0\r\n",4);
 			
         }else
-            addReplyLongLong(c, 0);
+            //addReplyLongLong(c, 0);
+            str = sdscatlen(str,":0\r\n",4);
 	}
     
     err = NULL;
@@ -128,10 +149,15 @@ void ds_hexists(redisClient *c)
     {
 		addReplyError(c, err);
         leveldb_free(err);
-
+        sdsfree(str);
         return ;
     }
     
+    ret = sdsempty();
+    ret = sdscatprintf(ret,"*%d\r\n",c->argc-2);
+    ret = sdscat(ret,str);
+    addReplySds(c,ret);
+    sdsfree(str);
     return ;
 }
 
@@ -222,9 +248,9 @@ void ds_keys_count(redisClient *c)
     {
 		addReplyError(c, err);
 		leveldb_free(err);
-	}
-
-	addReplyLongLong(c,i);
+	}else{
+        addReplyLongLong(c,i);
+    }
 
 	if(k1) zfree(k1);
 	if(k2) zfree(k2);
@@ -240,7 +266,7 @@ void ds_keys_count(redisClient *c)
  */
 void ds_hkeys_count(redisClient *c)
 {
-	char *err;
+	char *err=NULL;
 	
     const char *key;
     size_t key_len, len, i;
@@ -284,13 +310,13 @@ void ds_hkeys_count(redisClient *c)
 
     iter = leveldb_create_iterator(server.ds_db, server.roptions);
 	
-	leveldb_iter_seek(iter,k1,skey_len+1);
+	leveldb_iter_seek(iter,k1,skey_len + KEY_PREFIX_LENGTH + MEMBER_PREFIX_LENGTH);
 	
 	for(;leveldb_iter_valid(iter); leveldb_iter_next(iter))
     {
         key_len = 0;
         key     = leveldb_iter_key(iter, &key_len);
-        
+
 		if(key_len < KEY_PREFIX_LENGTH + MEMBER_PREFIX_LENGTH
            || 0 != memcmp(key,KEY_PREFIX_HASH,KEY_PREFIX_LENGTH) // not hashkey
            ){
@@ -328,10 +354,9 @@ void ds_hkeys_count(redisClient *c)
     {
 		addReplyError(c, err);
 		leveldb_free(err);
-	}
-
-	addReplyLongLong(c,i);
-
+	}else{
+        addReplyLongLong(c,i);
+    }
 	if(k1) zfree(k1);
 	if(k2) zfree(k2);
 
@@ -1031,8 +1056,12 @@ void ds_mget(redisClient *c)
 	int i;
 	size_t val_len;
     char *err, *value;
+    sds str,ret;
+    
+    str = sdsempty();
 
-	addReplyMultiBulkLen(c,c->argc-1);
+	// addReplyMultiBulkLen(c,c->argc-1);
+    // err in loop will break the protocal
 	for(i=1; i<c->argc; i++)
 	{
 		err     = NULL;
@@ -1044,20 +1073,33 @@ void ds_mget(redisClient *c)
 			addReplyError(c, err);
 			leveldb_free(err);
 			leveldb_free(value);
+            sdsfree(str);
 			return ;
 		}
 		else if(val_len > 0)
 		{
-			addReplyBulkCBuffer(c, value, val_len);
+            str = sdscatprintf(str,"$%zu\r\n",val_len);
+            str = sdscatlen(str,value,val_len);
+            str = sdscatlen(str,"\r\n",2);
+			//addReplyBulkCBuffer(c, value, val_len);
 			leveldb_free(value);
 			value = NULL;
 		}
 		else 
 		{
-			addReply(c,shared.nullbulk);
+            str = sdscatlen(str,"$-1\r\n",5);//nullbulk
+			//addReply(c,shared.nullbulk);
 
 		}
 	}
+
+    ret = sdsempty();
+    ret = sdscatprintf(ret,"*%d\r\n",c->argc-1);
+    ret = sdscat(ret,str);
+
+    sdsfree(str);
+    
+    addReplySds(c,ret);
 }
 
 void ds_get(redisClient *c)
@@ -1202,19 +1244,98 @@ void ds_hincrby(redisClient *c)
     return ;
 }
 
+/**
+ * 跨hash取值
+ * ds_mhget key field [key field ...]
+ */
+void ds_mhget(redisClient *c)
+{
+	int i;
+	sds keyword,str,ret;
+    size_t val_len;
+    char *err = NULL, *value = NULL;
+
+    if( ( (c->argc-1) % 2 ) != 0){
+        addReplyError(c,"syntax error");
+        return;
+    }
+
+	//addReplyMultiBulkLen(c, c->argc-2);
+    
+    keyword = sdsempty();
+    
+
+    str = sdsempty();
+
+	for(i=1; i<c->argc-1; i+=2)
+	{
+		err     = NULL;
+		value   = NULL;
+		val_len = 0;
+        
+        sdsclear(keyword);
+        keyword = sdscatlen(keyword,KEY_PREFIX_HASH,KEY_PREFIX_LENGTH);
+        keyword = sdscat(keyword, c->argv[i]->ptr);
+        keyword = sdscatlen(keyword, MEMBER_PREFIX, MEMBER_PREFIX_LENGTH); 
+        keyword = sdscat(keyword, c->argv[i+1]->ptr);
+
+        //fprintf(stderr,"K:%s\n",keyword);
+        
+		value   = leveldb_get(server.ds_db, server.roptions, keyword, sdslen(keyword), &val_len, &err);
+	    if(err != NULL)
+		{
+            sdsfree(keyword);
+			leveldb_free(value);
+            addReplyError(c, err);
+			leveldb_free(err);
+            sdsfree(str);
+			return ;
+		}
+		else if(val_len > 0)
+		{
+			//addReplyBulkCBuffer(c, value, val_len);
+
+            str = sdscatprintf(str,"$%zu\r\n",val_len);
+            str = sdscatlen(str,value,val_len);
+            str = sdscatlen(str,"\r\n",2);
+
+			leveldb_free(value);
+			value = NULL;
+		}
+		else 
+		{
+			//addReply(c,shared.nullbulk);
+            str = sdscatlen(str,"$-1\r\n",5);//nullbulk
+		}
+	}
+    
+    sdsfree(keyword);
+    
+    ret = sdsempty();
+    ret = sdscatprintf(ret,"*%d\r\n",(c->argc-1)/2);
+    ret = sdscat(ret,str);
+    sdsfree(str);
+
+    addReplySds(c,ret);
+}
+
+
 void ds_hmget(redisClient *c)
 {
 	int i;
-	sds keyword;
+	sds keyword,str,ret;
     size_t val_len;
     char *key, *err = NULL, *value = NULL;
     
 
-	addReplyMultiBulkLen(c, c->argc-2);
+	//addReplyMultiBulkLen(c, c->argc-2);
     
     key     = (char *)c->argv[1]->ptr;
     keyword = sdsempty();
     
+
+    str = sdsempty();
+
 	for(i=2; i<c->argc; i++)
 	{
 		err     = NULL;
@@ -1234,22 +1355,35 @@ void ds_hmget(redisClient *c)
 			leveldb_free(value);
             addReplyError(c, err);
 			leveldb_free(err);
+            sdsfree(str);
 			return ;
 		}
 		else if(val_len > 0)
 		{
-			addReplyBulkCBuffer(c, value, val_len);
+			//addReplyBulkCBuffer(c, value, val_len);
+
+            str = sdscatprintf(str,"$%zu\r\n",val_len);
+            str = sdscatlen(str,value,val_len);
+            str = sdscatlen(str,"\r\n",2);
+
 			leveldb_free(value);
 			value = NULL;
 		}
 		else 
 		{
-			addReply(c,shared.nullbulk);
-
+			//addReply(c,shared.nullbulk);
+            str = sdscatlen(str,"$-1\r\n",5);//nullbulk
 		}
 	}
     
     sdsfree(keyword);
+    
+    ret = sdsempty();
+    ret = sdscatprintf(ret,"*%d\r\n",c->argc-2);
+    ret = sdscat(ret,str);
+    sdsfree(str);
+
+    addReplySds(c,ret);
 }
 
 void ds_hmset(redisClient *c)
@@ -1324,7 +1458,8 @@ void ds_hset(redisClient *c)
     // append member
     str      = sdscat(str, field);
     leveldb_writebatch_put(wb, str, sdslen(str), value, sdslen((sds)value));
-    
+
+    err = NULL;
 	leveldb_write(server.ds_db, server.woptions, wb, &err);
 	leveldb_writebatch_destroy(wb);
     sdsfree(str);
@@ -1777,14 +1912,20 @@ void ds_hdel(redisClient *c)
         {
     		addReplyError(c, err);
     		leveldb_free(err);
+
+            return;
         }
      
 		// No way to keep the same return type as redis's HDEL
 		// HDEL needs at least 2 arguments
 		// so,... send "OK"
         addReply(c,shared.ok);
+
+        return;
 	}
 	
+    err = NULL;
+
 	wb = leveldb_writebatch_create();
 	for(i=2; i<c->argc; i++)
 	{
