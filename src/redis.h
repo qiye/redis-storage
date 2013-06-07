@@ -70,13 +70,16 @@
 #define REDIS_ERR               -1
 
 /* Static server configuration */
-#define REDIS_HZ                100     /* Time interrupt calls/sec. */
+#define REDIS_DEFAULT_HZ        10      /* Time interrupt calls/sec. */
+#define REDIS_MIN_HZ            1
+#define REDIS_MAX_HZ            500 
 #define REDIS_SERVERPORT        6379    /* TCP port */
 #define REDIS_MAXIDLETIME       0       /* default client timeout: infinite */
 #define REDIS_DEFAULT_DBNUM     16
 #define REDIS_CONFIGLINE_MAX    1024
 #define REDIS_EXPIRELOOKUPS_PER_CRON    10 /* lookup 10 expires per loop */
 #define REDIS_EXPIRELOOKUPS_TIME_PERC   25 /* CPU max % for keys collection */
+#define REDIS_DBCRON_DBS_PER_CALL 16
 #define REDIS_MAX_WRITE_PER_EVENT (1024*64)
 #define REDIS_SHARED_SELECT_CMDS 10
 #define REDIS_SHARED_INTEGERS 10000
@@ -145,12 +148,12 @@
  *
  * 00|000000 => if the two MSB are 00 the len is the 6 bits of this byte
  * 01|000000 00000000 =>  01, the len is 14 byes, 6 bits + 8 bits of next byte
- * 10|000000 [32 bit integer] => if it's 01, a full 32 bit len will follow
+ * 10|000000 [32 bit integer] => if it's 10, a full 32 bit len will follow
  * 11|000000 this means: specially encoded object will follow. The six bits
  *           number specify the kind of object that follows.
  *           See the REDIS_RDB_ENC_* defines.
  *
- * Lenghts up to 63 are stored using a single byte, most DB keys, and may
+ * Lengths up to 63 are stored using a single byte, most DB keys, and may
  * values, will fit inside. */
 #define REDIS_RDB_6BITLEN 0
 #define REDIS_RDB_14BITLEN 1
@@ -294,8 +297,8 @@
 
 /* Using the following macro you can run code inside serverCron() with the
  * specified period, specified in milliseconds.
- * The actual resolution depends on REDIS_HZ. */
-#define run_with_period(_ms_) if (!(server.cronloops%((_ms_)/(1000/REDIS_HZ))))
+ * The actual resolution depends on server.hz. */
+#define run_with_period(_ms_) if ((_ms_ <= 1000/server.hz) || !(server.cronloops%((_ms_)/(1000/server.hz))))
 
 /* We can print the stacktrace, so our assert is defined this way: */
 #define redisAssertWithInfo(_c,_o,_e) ((_e)?(void)0 : (_redisAssertWithInfo(_c,_o,#_e,__FILE__,__LINE__),_exit(1)))
@@ -320,7 +323,7 @@ typedef struct redisObject {
     void *ptr;
 } robj;
 
-/* Macro used to initalize a Redis object allocated on the stack.
+/* Macro used to initialize a Redis object allocated on the stack.
  * Note that this macro is taken near the structure definition to make sure
  * we'll update it when the structure is changed, to avoid bugs like
  * bug #85 introduced exactly in this way. */
@@ -377,12 +380,13 @@ typedef struct readyList {
     robj *key;
 } readyList;
 
-/* With multiplexing we need to take per-clinet state.
+/* With multiplexing we need to take per-client state.
  * Clients are taken in a liked list. */
 typedef struct redisClient {
     int fd;
     redisDb *db;
     int dictid;
+    robj *name;             /* As set by CLIENT SETNAME */
     sds querybuf;
     size_t querybuf_peak;   /* Recent (100ms or more) peak of querybuf size */
     int argc;
@@ -509,16 +513,20 @@ struct redisServer {
     uint16_t     ds_create_if_missing;
 	uint16_t     ds_error_if_exists;
 	uint16_t     ds_paranoid_checks;
-	uint32_t     ds_block_cache_size;
 	uint32_t     ds_write_buffer_size;
 	uint32_t     ds_block_size;
 	uint16_t     ds_max_open_files;
 	uint16_t     ds_block_restart_interval;
 	char         *ds_path;
+
+    uint32_t     rl_ttl;
+    uint32_t     rl_ttlcheck;
     
     /* General */
+    int hz;                     /* serverCron() calls frequency in hertz */
     redisDb *db;
-    dict *commands;             /* Command table hash table */
+    dict *commands;             /* Command table */
+    dict *orig_commands;        /* Command table before command renaming. */
     aeEventLoop *el;
     unsigned lruclock:22;       /* Clock incrementing every minute, for LRU */
     unsigned lruclock_padding:10;
@@ -559,7 +567,7 @@ struct redisServer {
     long long stat_keyspace_hits;   /* Number of successful lookups of keys */
     long long stat_keyspace_misses; /* Number of failed lookups of keys */
     size_t stat_peak_memory;        /* Max used memory record */
-    long long stat_fork_time;       /* Time needed to perform latets fork() */
+    long long stat_fork_time;       /* Time needed to perform latest fork() */
     long long stat_rejected_conn;   /* Clients rejected because of maxclients */
     list *slowlog;                  /* SLOWLOG list of commands */
     long long slowlog_entry_id;     /* SLOWLOG current entry ID */
@@ -574,6 +582,8 @@ struct redisServer {
     /* Configuration */
     int verbosity;                  /* Loglevel in redis.conf */
     int maxidletime;                /* Client timeout in seconds */
+    int tcpkeepalive;               /* Set SO_KEEPALIVE if non-zero. */
+    int active_expire_enabled;      /* Can be disabled for testing purposes. */
     size_t client_max_querybuf_len; /* Limit for client query buffer length */
     int dbnum;                      /* Total number of configured DBs */
     int daemonize;                  /* True if running as a daemon */
@@ -608,7 +618,7 @@ struct redisServer {
     char *rdb_filename;             /* Name of RDB file */
     int rdb_compression;            /* Use compression in RDB? */
     int rdb_checksum;               /* Use RDB checksum? */
-    time_t lastsave;                /* Unix time of last save succeeede */
+    time_t lastsave;                /* Unix time of last successful save */
     time_t rdb_save_time_last;      /* Time used by last RDB save run. */
     time_t rdb_save_time_start;     /* Current RDB save start time. */
     int lastbgsave_status;          /* REDIS_OK or REDIS_ERR */
@@ -639,11 +649,12 @@ struct redisServer {
     int repl_serve_stale_data; /* Serve stale data when link is down? */
     int repl_slave_ro;          /* Slave is read only? */
     time_t repl_down_since; /* Unix time at which link with master went down */
+    int repl_disable_tcp_nodelay;   /* Disable TCP_NODELAY after SYNC? */
     int slave_priority;             /* Reported in INFO and used by Sentinel. */
     /* Limits */
     unsigned int maxclients;        /* Max number of simultaneous clients */
     unsigned long long maxmemory;   /* Max number of memory bytes to use */
-    int maxmemory_policy;           /* Policy for key evition */
+    int maxmemory_policy;           /* Policy for key eviction */
     int maxmemory_samples;          /* Pricision of random sampling */
     /* Blocked clients */
     unsigned int bpop_blocked_clients; /* Number of clients blocked by lists */
@@ -680,7 +691,7 @@ struct redisServer {
     int lua_timedout;     /* True if we reached the time limit for script
                              execution. */
     int lua_kill;         /* Kill the script if true. */
-    /* Assert & bug reportign */
+    /* Assert & bug reporting */
     char *assert_failed;
     char *assert_file;
     int assert_line;
@@ -699,13 +710,13 @@ struct redisCommand {
     char *name;
     redisCommandProc *proc;
     int arity;
-    char *sflags; /* Flags as string represenation, one char per flag. */
+    char *sflags; /* Flags as string representation, one char per flag. */
     int flags;    /* The actual flags, obtained from the 'sflags' field. */
     /* Use a function to determine keys arguments in a command line. */
     redisGetKeysProc *getkeys_proc;
     /* What keys should be loaded in background when calling this command? */
     int firstkey; /* The first argument that's a key (0 = no keys) */
-    int lastkey;  /* THe last argument that's a key */
+    int lastkey;  /* The last argument that's a key */
     int keystep;  /* The step between first and last key */
     long long microseconds, calls;
 };
@@ -752,7 +763,7 @@ typedef struct {
     dictIterator *di;
 } setTypeIterator;
 
-/* Structure to hold hash iteration abstration. Note that iteration over
+/* Structure to hold hash iteration abstraction. Note that iteration over
  * hashes involves both fields and values. Because it is possible that
  * not both are required, store pointers in the iterator to avoid
  * unnecessary memory allocation for fields/values. */
@@ -819,6 +830,7 @@ void addReplyStatus(redisClient *c, char *status);
 void addReplyDouble(redisClient *c, double d);
 void addReplyLongLong(redisClient *c, long long ll);
 void addReplyMultiBulkLen(redisClient *c, long length);
+void addHashFieldToReply(redisClient *c, robj *o, robj *field);
 void copyClientOutputBuffer(redisClient *dst, redisClient *src);
 void *dupClientReplyValue(void *o);
 void getClientsMaxBuffers(unsigned long *longest_output_list,
@@ -966,6 +978,7 @@ int processCommand(redisClient *c);
 void setupSignalHandlers(void);
 struct redisCommand *lookupCommand(sds name);
 struct redisCommand *lookupCommandByCString(char *s);
+struct redisCommand *lookupCommandOrOriginal(sds name);
 void call(redisClient *c, int flags);
 void propagate(struct redisCommand *cmd, int dbid, robj **argv, int argc, int flags);
 void alsoPropagate(struct redisCommand *cmd, int dbid, robj **argv, int argc, int target);
@@ -1037,6 +1050,7 @@ robj *lookupKeyWrite(redisDb *db, robj *key);
 robj *lookupKeyReadOrReply(redisClient *c, robj *key, robj *reply);
 robj *lookupKeyWriteOrReply(redisClient *c, robj *key, robj *reply);
 void dbAdd(redisDb *db, robj *key, robj *val);
+void checkRlTTL(redisDb *db, robj *key); 
 void dbOverwrite(redisDb *db, robj *key, robj *val);
 void setKey(redisDb *db, robj *key, robj *val);
 int dbExists(redisDb *db, robj *key);
@@ -1077,6 +1091,7 @@ void echoCommand(redisClient *c);
 void setCommand(redisClient *c);
 void setnxCommand(redisClient *c);
 void setexCommand(redisClient *c);
+void setnexCommand(redisClient *c);
 void psetexCommand(redisClient *c);
 void getCommand(redisClient *c);
 void delCommand(redisClient *c);
@@ -1177,6 +1192,8 @@ void hmsetCommand(redisClient *c);
 void hmgetCommand(redisClient *c);
 void hdelCommand(redisClient *c);
 void hlenCommand(redisClient *c);
+int hashTypeGetFromZiplist(robj *o, robj *field, unsigned char **vstr, unsigned int *vlen,  long long *vll);
+int hashTypeGetFromHashTable(robj *o, robj *field, robj **value); 
 void zremrangebyrankCommand(redisClient *c);
 void zunionstoreCommand(redisClient *c);
 void zinterstoreCommand(redisClient *c);
@@ -1249,7 +1266,6 @@ void ds_hdel(redisClient *c);
 void ds_hget(redisClient *c);
 void ds_hset(redisClient *c);
 void ds_hsetnx(redisClient *c);
-void ds_mhget(redisClient *c);
 void ds_hmget(redisClient *c);
 void ds_hmset(redisClient *c);
 void ds_hincrby(redisClient *c);
@@ -1268,6 +1284,17 @@ void ds_hkeys_count(redisClient *c);
 void rl_delete(redisClient *c);
 void rl_get(redisClient *c);
 void rl_set(redisClient *c);
+void rl_hget(redisClient *c);
+void rl_hset(redisClient *c);
+void rl_hdel(redisClient *c);
+void rl_mset(redisClient *c);
+void rl_getset(redisClient *c);
+void rl_hgetset(redisClient *c);
+void rl_hmget(redisClient *c);
+void rl_hmset(redisClient *c);
+void rl_mget(redisClient *c);
+void rl_mgetset(redisClient *c);
+void rl_hmgetset(redisClient *c);
 
 
 #define redisDebug(fmt, ...) \

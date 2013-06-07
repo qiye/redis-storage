@@ -1,7 +1,31 @@
 更新说明
 =========
+
 <pre>
-增加hash相关几个命令
+新增配置项：
+rl:ttl 0        ( 单位：秒，大于0时会强制设置redis里key的过期时间，仅对rl系列命令有效) 
+rl:ttlcheck 0   (当key的ttl在小于此值时被读取到，则过期期间重设置为rl:ttl ) 
+
+rl系列命令：(同时操作redis和leveldb系列命令)
+=======string数据操作======
+rl_get key            (从redis或leveldb取值, 优先顺序：redis > leveldb)
+rl_getset key         (返回同rl_get, 当leveldb有值，redis无值时，会回写到redis)
+rl_mget k1 k2 k3      (取redis和leveldb的并集，优先级：redis>leveldb)
+rl_mgetset k1 k2 k3   (返回同rl_mget, 当leveldb有值，redis无值，会回写到redis)
+rl_set key val        (往redis和leveldb写值, 优先顺序：leveldb > redis, leveldb如果失败，将中断往redis写，返回错误)
+rl_mset k1 v1 k2 v2   (往redis和leveldb批量写值, 优先顺序：leveldb > redis, leveldb如果失败，将中断往redis写，返回错误)
+rl_del k1 k2 k3       (往redis和leveldb删值, 优先顺序：leveldb > redis)
+
+========hash数据操作========
+rl_hget key hk                (从redis或leveldb取值, 优先顺序：redis > leveldb)
+rl_hgetset  key hk            (返回同rl_hget, 当leveldb有值，redis无值时，会回写到redis)
+rl_hmget key hk1 hk2          (往redis和leveldb批量写值，优先级：redis>leveldb)
+rl_hmgetset k1 k2 k3          (返回同rl_hmget, 当leveldb有值，redis无值，会回写到redis)
+rl_hset key hk hv             (往redis和leveldb写值, 优先顺序：leveldb > redis, leveldb如果失败，将中断往redis写，返回错误)
+rl_hmset key hk1 hv1 hk2 hv2   (取redis和leveldb的并集，优先级：redis>leveldb)
+rl_hdel  key hk1 hk2 hk3      (往redis和leveldb删值, 优先顺序：leveldb > redis)
+
+ds系列命令:
 ds_hlen
 ds_hvals
 ds_hsetnx
@@ -73,12 +97,12 @@ redis.conf
 ds:create_if_missing 1                //if the specified database didn't exist will create a new one
 ds:error_if_exists 0                  //if the opened database exsits will throw exception
 ds:paranoid_checks 0
-ds:block_cache_size 10000
-ds:write_buffer_size 100000000       //写缓存大小
-ds:block_size 4096
-ds:max_open_files 8000               //leveldb最多可以使用的檔案數，一個檔案可以儲存 2MB 的資料。
+ds:ds_lru_cache 200                   //单位MB
+ds:write_buffer_size 64               //单位MB
+ds:block_size 32                      //单位KB
+ds:max_open_files 4000
 ds:block_restart_interval 16
-ds:path /usr/local/redis/db/leveldb  //leveldb save path
+ds:path ./leveldb
 </pre>
 
 

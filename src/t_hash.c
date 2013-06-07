@@ -581,7 +581,7 @@ void hincrbyfloatCommand(redisClient *c) {
     decrRefCount(new);
 }
 
-static void addHashFieldToReply(redisClient *c, robj *o, robj *field) {
+void addHashFieldToReply(redisClient *c, robj *o, robj *field) {
     int ret;
 
     if (o == NULL) {
