@@ -58,7 +58,7 @@ else
 endif
 
 # Include paths to dependencies
-FINAL_CFLAGS+= -I../deps/hiredis -I../deps/linenoise -I../deps/lua/src -I../deps/leveldb-1.9.0/include -I../deps/gperftools-2.0/src
+FINAL_CFLAGS+= -I../deps/hiredis -I../deps/linenoise -I../deps/lua/src -I../deps/leveldb-1.10.0/include -I../deps/gperftools-2.0/src
 
 ifeq ($(MALLOC),tcmalloc)
   FINAL_CFLAGS+= -DUSE_TCMALLOC
@@ -154,7 +154,7 @@ endif
 
 # redis-server
 $(REDIS_SERVER_NAME): $(REDIS_SERVER_OBJ)
-	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a -lstdc++ -I../deps/lua/src ../deps/lua/src/libluajit.a -L../deps/leveldb-1.9.0 -lleveldb $(FINAL_LIBS)
+	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a -lstdc++ -I../deps/lua/src ../deps/lua/src/libluajit.a -L../deps/leveldb-1.10.0 -lleveldb $(FINAL_LIBS)
 
 # redis-sentinel
 $(REDIS_SENTINEL_NAME): $(REDIS_SERVER_NAME)

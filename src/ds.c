@@ -1089,13 +1089,16 @@ robj *ds_hgetToRobj(char *key, char *field, char **err) {
     keyword = sdscatlen(keyword, MEMBER_PREFIX, MEMBER_PREFIX_LENGTH);
     keyword = sdscatsds(keyword, field);
     value = leveldb_get(server.ds_db, server.roptions, keyword, sdslen(keyword), &val_len, err);
-    sdsfree(keyword);
-    if (err != NULL) {
-        leveldb_free(value);
+    if (*err != NULL) {
+        leveldb_free(*err);
+        if (val_len > 0) leveldb_free(value);
+        sdsfree(keyword);
         return NULL;
     } else if (value == NULL) {
+        sdsfree(keyword);
         return NULL;
     }
+    sdsfree(keyword);
 
     robj *rv;
     rv = createStringObject(value, val_len);
