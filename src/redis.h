@@ -510,7 +510,7 @@ struct redisServer {
     leveldb_readoptions_t  *roptions;
     //leveldb_iterator_t     *iter;
     
-	
+	uint16_t     ds_open;
 	uint16_t     ds_lru_cache;
     uint16_t     ds_create_if_missing;
 	uint16_t     ds_error_if_exists;

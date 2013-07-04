@@ -97,6 +97,14 @@ void loadServerConfigFromString(char *config) {
                 err = "Invalid tcp-keepalive value"; goto loaderr;
             }
         } 
+        else if (!strcasecmp(argv[0],"ds:open") && argc == 2)
+        {
+            server.ds_open = atoi(argv[1]);
+            if (server.ds_open < 0 || server.ds_open > 1) 
+            {
+                err = "Invalid ds_open"; goto loaderr;
+            }
+        } 
         else if (!strcasecmp(argv[0],"ds:create_if_missing") && argc == 2)
 		{
             server.ds_create_if_missing = atoi(argv[1]);

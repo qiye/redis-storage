@@ -10,6 +10,9 @@
 // 常规key不使用前缀，用户自己控制自己的key不带有上述前缀
 
 void ds_init() {
+    if(!server.ds_open) {
+        return ;
+    }
     char *err = NULL;
 
     server.ds_cache = leveldb_cache_create_lru(server.ds_lru_cache * 1048576);
@@ -2376,11 +2379,13 @@ void rl_delete(redisClient *c) {
 }
 
 void ds_close() {
-    leveldb_readoptions_destroy(server.roptions);
-    leveldb_writeoptions_destroy(server.woptions);
-    leveldb_options_set_filter_policy(server.ds_options, NULL);
-    leveldb_filterpolicy_destroy(server.policy);
-    leveldb_close(server.ds_db);
-    leveldb_options_destroy(server.ds_options);
-    leveldb_cache_destroy(server.ds_cache);
+    if(server.ds_open) {
+        leveldb_readoptions_destroy(server.roptions);
+        leveldb_writeoptions_destroy(server.woptions);
+        leveldb_options_set_filter_policy(server.ds_options, NULL);
+        leveldb_filterpolicy_destroy(server.policy);
+        leveldb_close(server.ds_db);
+        leveldb_options_destroy(server.ds_options);
+        leveldb_cache_destroy(server.ds_cache);
+    }
 }
