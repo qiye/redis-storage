@@ -62,6 +62,10 @@ void setGenericCommand(redisClient *c, int nx, robj *key, robj *val, robj *expir
     setKey(c->db,key,val);
     server.dirty++;
     if (expire) setExpire(c->db,key,mstime()+milliseconds);
+    if(nx>1) {
+        addReply(c, shared.ok);
+        return;
+    }
     addReply(c, nx ? shared.cone : shared.ok);
 }
 
@@ -77,7 +81,7 @@ void setnxCommand(redisClient *c) {
 
 void setnexCommand(redisClient *c) {
     c->argv[3] = tryObjectEncoding(c->argv[3]);
-    setGenericCommand(c,1,c->argv[1],c->argv[3],c->argv[2],UNIT_SECONDS);
+    setGenericCommand(c,2,c->argv[1],c->argv[3],c->argv[2],UNIT_SECONDS);
 }
 
 void setexCommand(redisClient *c) {
