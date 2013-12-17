@@ -1120,7 +1120,7 @@ void checkRlTTL(redisDb *db, robj *key) {
             return;
         }
         long long expire = getExpire(db,key);                                  
-        if(expire == -1 || expire-mstime() < server.rl_ttlcheck) {                         
+        if(expire == -1 || expire-mstime() < server.rl_ttlcheck*1000) {                         
             expire = server.rl_ttl * 1000;                                                                            
             setExpire(db, key, mstime()+expire);
         }
