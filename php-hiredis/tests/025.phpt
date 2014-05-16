@@ -1,5 +1,5 @@
 --TEST--
-phpiredis does not reconnect on disconnect
+phpiredis multicommand (binary safe)
 --SKIPIF--
 <?php include 'skipif.inc'; ?>
 --FILE--
@@ -12,12 +12,8 @@ if (!$link = my_phpiredis_connect($host))
         printf("[001] Cannot connect to the server using host=%s\n",
                 $host);
 
-phpiredis_command($link, 'SET a 1');
-var_dump(phpiredis_command($link, 'GET a'));
-var_dump(phpiredis_command($link, 'QUIT'));
-var_dump(phpiredis_command($link, 'GET a'));
+$commands = phpiredis_multi_command_bs($link, array(array('DEL', 'test'), array('SET', 'test', '1'), array('GET', 'test')));
+var_dump($commands[2]);
 ?>
 --EXPECTF--
 string(1) "1"
-string(2) "OK"
-bool(false)
