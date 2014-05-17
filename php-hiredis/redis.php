@@ -40,7 +40,7 @@ class redis
             $data[] = ["setBit", $namespace, (string)$hash, "1"];
         }
         $res =  phpiredis_multi_command_bs($this->conn, $data);
-        print_r($res);
+        return $res[0] == "OK" ? true : false;
     }
 
     public function BloomFilter_check($namespace, $str)
