@@ -151,6 +151,6 @@ $db->ds_set("nickname", "qiye");
 $data = $db->ds_mget( "name", "nickname");
 print_r($data);
 */
-echo "\r\n";
+//echo "\r\n";
 //echo phpiredis_genid(); 
 ?>
